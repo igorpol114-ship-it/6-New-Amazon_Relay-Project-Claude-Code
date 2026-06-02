@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Stage 4 — 2026-06-02
+- Updated: content/sidebar.js — added ext-btn-toggle (Start/Stop, data-running state), ext-slider-speed (0.5–8s step 0.5 default 2), ext-slider-value (one decimal); removed ext-status and ext-count; addEventListener only, no Amazon clicks, no setInterval
+- Updated: docs/UI_ELEMENTS.md — registered Stage 4 elements; removed ext-status and ext-count
+
 ### Stage 3 — 2026-06-02
 - Added: content/sidebar.js — buildSidebar() injects fixed top-center bar with title; guard against double injection; CSS via style.textContent (static only)
 - Updated: manifest.json — added content/sidebar.js before content/content.js in js array

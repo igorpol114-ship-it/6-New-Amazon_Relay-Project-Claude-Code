@@ -8,15 +8,12 @@ When reporting a bug, use the testid name.
 |--------|------|----------|
 | ext-sidebar | div | Sidebar container (fixed, top-center) — Stage 3 |
 | ext-sidebar-title | span | "Amazon Relay Helper" title text — Stage 3 |
-| btn-start | button | Start refresh loop |
-| btn-stop | button | Stop refresh loop |
-| slider-refresh-speed | range | Set refresh speed |
-| label-speed-value | span | Show current speed |
-| toggle-sound | checkbox | Enable/disable sound |
-| toggle-debug | checkbox | Show debug overlay |
-| indicator-status | span | Status text |
-| counter-refresh | span | Refresh count |
-| counter-new-loads | span | New loads count |
+| ext-btn-toggle | button | Start / Stop toggle; data-running attr tracks state — Stage 4 |
+| ext-slider-speed | range | Refresh speed slider (0.5–8 s, step 0.5, default 2) — Stage 4 |
+| ext-slider-value | span | Shows current slider value e.g. "2.0s" — Stage 4 |
+| toggle-sound | checkbox | Enable/disable sound — Stage 12 |
+| toggle-debug | checkbox | Show debug overlay — future |
+| counter-refresh | span | Total refresh count — future |
 
 ## Popup (Stage 9)
 | testid | Type | Function |

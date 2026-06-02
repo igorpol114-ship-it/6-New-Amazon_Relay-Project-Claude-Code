@@ -10,31 +10,31 @@ function buildSidebar() {
   const style = document.createElement('style');
   style.setAttribute('data-testid', 'ext-sidebar-styles');
   style.textContent =
-    '#ext-sidebar {' +
-    '  position: fixed;' +
-    '  top: 0;' +
-    '  left: 50%;' +
-    '  transform: translateX(-50%);' +
-    '  z-index: 2147483647;' +
-    '  background: #1a5c38;' +
-    '  color: #ffffff;' +
-    '  height: 40px;' +
-    '  padding: 0 24px;' +
-    '  display: flex;' +
-    '  align-items: center;' +
-    '  gap: 12px;' +
-    '  border-radius: 0 0 8px 8px;' +
-    '  box-shadow: 0 2px 8px rgba(0,0,0,0.35);' +
-    '  font-family: Arial, sans-serif;' +
-    '  font-size: 13px;' +
-    '  font-weight: 600;' +
-    '  letter-spacing: 0.3px;' +
-    '  white-space: nowrap;' +
-    '  user-select: none;' +
+    '#ext-sidebar{' +
+      'position:fixed;top:0;left:50%;transform:translateX(-50%);' +
+      'z-index:2147483647;background:#1a5c38;color:#fff;' +
+      'height:40px;padding:0 20px;display:flex;align-items:center;gap:10px;' +
+      'border-radius:0 0 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,.35);' +
+      'font-family:Arial,sans-serif;font-size:13px;font-weight:600;' +
+      'letter-spacing:.3px;white-space:nowrap;user-select:none;' +
     '}' +
-    'body {' +
-    '  padding-top: 44px !important;' +
-    '}';
+    '#ext-sidebar [data-testid="ext-btn-toggle"]{' +
+      'background:rgba(255,255,255,.15);color:#fff;' +
+      'border:1px solid rgba(255,255,255,.3);border-radius:4px;' +
+      'padding:3px 10px;cursor:pointer;font-size:12px;' +
+      'font-family:inherit;font-weight:600;' +
+    '}' +
+    '#ext-sidebar [data-testid="ext-btn-toggle"]:hover{' +
+      'background:rgba(255,255,255,.25);' +
+    '}' +
+    '#ext-sidebar [data-testid="ext-slider-speed"]{' +
+      'width:80px;cursor:pointer;accent-color:#7dcf8e;vertical-align:middle;' +
+    '}' +
+    '#ext-sidebar [data-testid="ext-slider-value"]{' +
+      'font-size:11px;min-width:28px;opacity:.9;' +
+    '}' +
+    'body{padding-top:44px!important;}';
+
   document.head.appendChild(style);
 
   // Container
@@ -42,13 +42,54 @@ function buildSidebar() {
   container.id = 'ext-sidebar';
   container.setAttribute('data-testid', 'ext-sidebar');
 
-  // Title — textContent only, never innerHTML
+  // Title
   const title = document.createElement('span');
   title.setAttribute('data-testid', 'ext-sidebar-title');
   title.textContent = EXT_NAME;
 
+  // Toggle button — tracks own state in data-running attribute
+  const toggle = document.createElement('button');
+  toggle.setAttribute('data-testid', 'ext-btn-toggle');
+  toggle.setAttribute('data-running', 'false');
+  toggle.textContent = 'Start';
+
+  // Speed slider
+  const slider = document.createElement('input');
+  slider.setAttribute('type', 'range');
+  slider.setAttribute('data-testid', 'ext-slider-speed');
+  slider.min   = '0.5';
+  slider.max   = '8';
+  slider.step  = '0.5';
+  slider.value = '2';
+
+  // Slider value display
+  const sliderValue = document.createElement('span');
+  sliderValue.setAttribute('data-testid', 'ext-slider-value');
+  sliderValue.textContent = '2.0s';
+
+  // Build DOM — order matches visual left-to-right
   container.appendChild(title);
+  container.appendChild(toggle);
+  container.appendChild(slider);
+  container.appendChild(sliderValue);
+
   document.body.appendChild(container);
+
+  // --- Event listeners ---
+  // CLAUDE.md rule 2: addEventListener only, never inline handlers
+  // CLAUDE.md rule 4: no .click() on Amazon elements — these only touch our own UI
+
+  toggle.addEventListener('click', function () {
+    logger.log('sidebar', 'toggle clicked');
+    const nowRunning = toggle.getAttribute('data-running') !== 'true';
+    toggle.setAttribute('data-running', String(nowRunning));
+    toggle.textContent = nowRunning ? 'Stop' : 'Start';
+  });
+
+  slider.addEventListener('input', function () {
+    logger.log('sidebar', 'slider changed', { value: slider.value });
+    sliderValue.textContent = parseFloat(slider.value).toFixed(1) + 's';
+  });
 
   logger.log('sidebar', 'sidebar injected');
 }
