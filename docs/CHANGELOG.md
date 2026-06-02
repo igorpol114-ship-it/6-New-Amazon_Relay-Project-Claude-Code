@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Stage 5 — 2026-06-02
+- Added: utils/storage.js — storage object with async get/set/remove/getAll wrapping chrome.storage.local; STORAGE_KEYS.SPEED constant defined here
+- Updated: manifest.json — utils/storage.js added after logger.js, before sidebar.js
+- Updated: content/sidebar.js — buildSidebar made async; restores saved speed from storage before attaching listeners; slider input persists STORAGE_KEYS.SPEED
+
 ### Stage 4 — 2026-06-02
 - Updated: content/sidebar.js — added ext-btn-toggle (Start/Stop, data-running state), ext-slider-speed (0.5–8s step 0.5 default 2), ext-slider-value (one decimal); removed ext-status and ext-count; addEventListener only, no Amazon clicks, no setInterval
 - Updated: docs/UI_ELEMENTS.md — registered Stage 4 elements; removed ext-status and ext-count

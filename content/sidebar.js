@@ -1,4 +1,4 @@
-function buildSidebar() {
+async function buildSidebar() {
   logger.log('sidebar', 'buildSidebar called');
 
   if (document.querySelector('[data-testid="ext-sidebar"]')) {
@@ -54,7 +54,7 @@ function buildSidebar() {
   toggle.setAttribute('data-running', 'false');
   toggle.textContent = 'Start';
 
-  // Speed slider
+  // Speed slider — default values, overwritten by storage restore below
   const slider = document.createElement('input');
   slider.setAttribute('type', 'range');
   slider.setAttribute('data-testid', 'ext-slider-speed');
@@ -76,6 +76,11 @@ function buildSidebar() {
 
   document.body.appendChild(container);
 
+  // Restore saved speed before attaching listeners
+  const savedSpeed = await storage.get(STORAGE_KEYS.SPEED, 2);
+  slider.value = String(savedSpeed);
+  sliderValue.textContent = parseFloat(savedSpeed).toFixed(1) + 's';
+
   // --- Event listeners ---
   // CLAUDE.md rule 2: addEventListener only, never inline handlers
   // CLAUDE.md rule 4: no .click() on Amazon elements — these only touch our own UI
@@ -90,6 +95,7 @@ function buildSidebar() {
   slider.addEventListener('input', function () {
     logger.log('sidebar', 'slider changed', { value: slider.value });
     sliderValue.textContent = parseFloat(slider.value).toFixed(1) + 's';
+    storage.set(STORAGE_KEYS.SPEED, parseFloat(slider.value));
   });
 
   logger.log('sidebar', 'sidebar injected');

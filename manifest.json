@@ -12,6 +12,7 @@
     "js": [
       "utils/constants.js",
       "utils/logger.js",
+      "utils/storage.js",
       "content/sidebar.js",
       "content/content.js"
     ],
