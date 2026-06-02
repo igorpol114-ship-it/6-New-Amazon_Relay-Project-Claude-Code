@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Amazon Relay Helper",
+  "version": "0.1.0",
+  "description": "Monitors Amazon Relay Load Board for new loads. Does NOT book loads.",
+
+  "permissions": ["storage", "scripting", "activeTab"],
+  "host_permissions": ["https://relay.amazon.com/*"],
+
+  "content_scripts": [{
+    "matches": ["https://relay.amazon.com/*"],
+    "js": [
+      "utils/constants.js",
+      "utils/logger.js",
+      "content/content.js"
+    ],
+    "run_at": "document_idle"
+  }],
+
+  "action": {
+    "default_title": "Amazon Relay Helper"
+  }
+}
