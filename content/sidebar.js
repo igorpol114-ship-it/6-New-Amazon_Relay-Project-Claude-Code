@@ -23,6 +23,7 @@ function buildSidebar() {
       'border:1px solid rgba(255,255,255,.3);border-radius:4px;' +
       'padding:3px 10px;cursor:pointer;font-size:12px;' +
       'font-family:inherit;font-weight:600;' +
+      'min-width:52px;text-align:center;' +
     '}' +
     '#ext-sidebar [data-testid="ext-btn-toggle"]:hover{' +
       'background:rgba(255,255,255,.25);' +
