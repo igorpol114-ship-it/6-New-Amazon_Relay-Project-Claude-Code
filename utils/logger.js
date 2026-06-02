@@ -19,7 +19,7 @@ const logger = {
   },
 
   debug(module, msg, data) {
-    // Gated by DEBUG_LEVEL in Stage 2 — always logs for now
+    if (DEBUG_LEVEL < 2) return;
     const line = `[EXT][${this._ts()}][${module}] ${msg}`;
     data !== undefined ? console.debug(line, data) : console.debug(line);
   }
