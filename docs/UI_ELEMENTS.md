@@ -6,6 +6,8 @@ When reporting a bug, use the testid name.
 ## Sidebar (Stage 3-4)
 | testid | Type | Function |
 |--------|------|----------|
+| ext-sidebar | div | Sidebar container (fixed, top-center) — Stage 3 |
+| ext-sidebar-title | span | "Amazon Relay Helper" title text — Stage 3 |
 | btn-start | button | Start refresh loop |
 | btn-stop | button | Stop refresh loop |
 | slider-refresh-speed | range | Set refresh speed |

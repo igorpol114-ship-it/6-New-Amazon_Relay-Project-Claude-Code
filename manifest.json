@@ -12,6 +12,7 @@
     "js": [
       "utils/constants.js",
       "utils/logger.js",
+      "content/sidebar.js",
       "content/content.js"
     ],
     "run_at": "document_idle"
