@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Stage 7 — 2026-06-02
+- Updated: content/refreshManager.js — added refreshNow(): isForbiddenElement guard + tagName==='BUTTON' check + the ONE button.click() in the codebase; exposed __EXT_DEBUG.refreshNow; findRefreshButton and refreshDryRun unchanged
+- Updated: docs/SAFETY.md — recorded refreshNow() as sole .click() call site, listed all 3 required gates; updated audit checklist
+
 ### Stage 6 — 2026-06-02
 - Added: content/refreshManager.js — findRefreshButton() (2-strategy fallback chain, NO .click()); refreshDryRun() (finds, logs, isForbiddenElement check, NO .click()); __EXT_DEBUG.refreshDryRun exposed for manual console testing only
 - Updated: manifest.json — content/refreshManager.js added after storage.js, before sidebar.js

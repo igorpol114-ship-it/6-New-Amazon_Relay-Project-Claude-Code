@@ -43,8 +43,20 @@ neutral-zone click, filling PAT form, storage.
 
 NOT IN SCOPE: clicking Book, clicking Submit, any auto-acceptance.
 
+## Sole .click() Call Site (recorded Stage 7)
+The ONE and ONLY .click() in the codebase is in:
+  content/refreshManager.js → refreshNow() → button.click()
+
+It is reachable ONLY if ALL of the following pass:
+  1. findRefreshButton() returns a non-null element
+  2. isForbiddenElement(button) returns false
+  3. button.tagName === 'BUTTON'
+
+refreshNow() is NOT called automatically. No setInterval, no auto-trigger.
+It is exposed only on window.__EXT_DEBUG.refreshNow for manual testing.
+
 ## Audit Checklist (Stage 17)
-- [ ] grep "\.click()" → only Refresh + neutral zone
+- [ ] grep "\.click()" → only refreshNow() in refreshManager.js + neutral zone (Stage 13)
 - [ ] grep "rlb-book" → only in FORBIDDEN_SELECTORS
 - [ ] no clickAutomation.js / autoBooking.js
 - [ ] isForbiddenElement() called before every .click()

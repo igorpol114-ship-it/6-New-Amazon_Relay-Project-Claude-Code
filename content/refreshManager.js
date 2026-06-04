@@ -1,5 +1,6 @@
-// STAGE 6 — DRY RUN ONLY. NO .click() IN THIS FILE.
-// Finding and inspecting the refresh button only. Clicking is Stage 7, separately approved.
+// Stage 6: findRefreshButton() + refreshDryRun() — NO .click()
+// Stage 7: refreshNow() — the ONE allowed .click() in this project, guarded by
+//          isForbiddenElement() + tagName check before it can execute.
 
 const REFRESH_PATH_D = 'M20.128 2l-.493 5.635L14 7.142M19.44 6.935a9 9 0 101.023 8.134';
 
@@ -76,11 +77,43 @@ function refreshDryRun() {
     logger.log('refreshManager', 'Safety check passed — isForbiddenElement returned false (correct)');
   }
 
-  // NO .click() here — this is a dry run only.
-  // Clicking is Stage 7, separately approved.
+  // NO .click() here — dry run only.
+}
+
+function refreshNow() {
+  logger.log('refreshManager', 'refreshNow called');
+
+  const button = findRefreshButton();
+
+  if (!button) {
+    logger.warn('refreshManager', 'refreshNow: button not found, NOT clicking');
+    return false;
+  }
+
+  // MANDATORY SAFETY GATE — Layer 2 guard (see SAFETY.md)
+  if (isForbiddenElement(button)) {
+    logger.error('refreshManager', 'BLOCKED: refresh target matched FORBIDDEN selector — NOT clicking', {});
+    return false;
+  }
+
+  // Belt-and-suspenders: confirm we have an actual button element
+  if (button.tagName !== 'BUTTON') {
+    logger.error('refreshManager', 'BLOCKED: refresh target is not a BUTTON element — NOT clicking', {
+      actualTag: button.tagName
+    });
+    return false;
+  }
+
+  // All checks passed — this is the ONE allowed .click() in the entire codebase.
+  logger.log('refreshManager', 'SAFETY PASSED — clicking refresh button now', { tag: button.tagName });
+  button.click();
+  logger.log('refreshManager', 'refresh button clicked');
+  return true;
 }
 
 // Expose for manual console testing only — NOT called automatically.
+// content.js does NOT call refreshNow(). No setInterval anywhere in this file.
 window.__EXT_DEBUG = window.__EXT_DEBUG || {};
-window.__EXT_DEBUG.refreshDryRun = refreshDryRun;
 window.__EXT_DEBUG.findRefreshButton = findRefreshButton;
+window.__EXT_DEBUG.refreshDryRun = refreshDryRun;
+window.__EXT_DEBUG.refreshNow = refreshNow;
