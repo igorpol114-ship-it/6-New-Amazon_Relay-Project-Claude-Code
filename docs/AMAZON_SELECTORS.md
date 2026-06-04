@@ -24,12 +24,21 @@ If both strategies fail: log error, return null, do NOT attempt click.
 Implementation: content/refreshManager.js → findRefreshButton()
 
 ## Load card (Layout A) ✅
-Container: div.load-card
-Load ID: div[id] inside (UUID)
-Payout: .wo-total_payout
-Price increase: .wo-total_payout__modified-load-increase-attr
-Equipment: .equipment-type-text
-Loading type: .loading-type
+Verified: 2026-06-02
+Container:        div.load-card, div.load-card__selected  (both states)
+Load ID:          card.querySelector('div[id]')?.id  (UUID string)
+Payout:           .wo-total_payout  → "$427.61"
+Price per mile:   .wo-card-header__components where textContent includes "/mi"  → "$1.84/mi"
+Distance:         .wo-card-header__components where textContent includes "mi" but NOT "/mi"  → "104.0 mi"
+Duration:         .wo-card-header__components matching /\d+[dh]/ and not containing "mi"  → "2h 52m"
+Stops (locations): .wo-card-header__components where textContent includes ", " but NOT "/mi"  → ["CMH3 MONROE, OH...", ...]
+Equipment:        .equipment-type-text  → "53' Trailer"
+Trailer circle:   .trailer-type-circle  → "P"  (may be absent)
+Loading type:     .loading-type  → "Drop" or "Live"
+Deadhead:         previousElementSibling of span[title="Deadhead"]  → "32.31 mi"
+Tag:              #STARTING_SOON or .wo-tag  → "Starting soon"  (may be absent)
+Price increase:   .wo-total_payout__modified-load-increase-attr  (Amazon's own highlight)
+Implementation:   content/loadParser.js → parseLoads()
 
 ## Tour container / Contracts (Layout B) — INTENTIONALLY IGNORED ⛔
 Container: [data-type$="-tour-container"]

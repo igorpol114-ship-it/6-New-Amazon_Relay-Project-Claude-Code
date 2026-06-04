@@ -14,6 +14,7 @@
       "utils/logger.js",
       "utils/storage.js",
       "content/refreshManager.js",
+      "content/loadParser.js",
       "content/sidebar.js",
       "content/content.js"
     ],
