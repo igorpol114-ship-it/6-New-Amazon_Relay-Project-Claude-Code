@@ -1,6 +1,7 @@
 const FORBIDDEN_SELECTORS = [
-  '#rlb-book-btn',                        // STARTS booking flow
-  '#rlb-book-trip-confirm-booking-btn'    // FINALIZES booking
+  '#rlb-book-btn',                        // STARTS booking flow (Load Board)
+  '#rlb-book-trip-confirm-booking-btn',   // FINALIZES booking (Load Board)
+  '#book-btn-row'                         // Contracts/Layout-B Book button — out of scope for MVP, guarded anyway
 ];
 
 function isForbiddenElement(el) {

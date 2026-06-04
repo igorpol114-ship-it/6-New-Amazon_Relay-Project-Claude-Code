@@ -31,16 +31,25 @@ Price increase: .wo-total_payout__modified-load-increase-attr
 Equipment: .equipment-type-text
 Loading type: .loading-type
 
-## Tour container (Layout B) ✅
+## Tour container / Contracts (Layout B) — INTENTIONALLY IGNORED ⛔
 Container: [data-type$="-tour-container"]
-Load leg: [data-type$="-load-expander"]
-Payout: [data-type="tour-payout-info"]
-Distance: [data-type="tour-distance-string"]
+Rows: data-tag="offer-row"
+
+Layout B (Contracts / Block view) is OUT OF SCOPE for this MVP.
+This extension does NOT parse, interact with, or display Layout B data.
+Contracts/Block is a future separate project with its own spec.
+Selectors listed above for reference only — do not use in extension code.
 
 ## Booking (FORBIDDEN — never click) ⚠️
-Book button: #rlb-book-btn
-Confirm: #rlb-book-trip-confirm-booking-btn
-Cancel: #rlb-book-trip-no-btn
+Book button (Load Board):   #rlb-book-btn
+Confirm booking:            #rlb-book-trip-confirm-booking-btn
+Cancel booking:             #rlb-book-trip-no-btn
+Book button (Contracts/Layout B): #book-btn-row — Layout B / Contracts view — OUT OF SCOPE for MVP, but guarded.
+
+All four selectors are in FORBIDDEN_SELECTORS (utils/constants.js).
+isForbiddenElement() blocks any .click() call that targets these elements.
+#book-btn-row is guarded as a paranoid safety measure even though Layout B
+is not targeted — the extension must never book regardless of which view is active.
 
 ## PAT form (Stage 14)
 Container: .css-kkw3y5 (fragile — find by structure)

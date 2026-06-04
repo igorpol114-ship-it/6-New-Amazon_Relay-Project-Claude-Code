@@ -9,9 +9,15 @@ orders. The USER books manually — the extension never books.
 ## Target user
 Carrier dispatchers monitoring the Amazon Relay Load Board.
 
+## MVP scope: Load Board only
+This extension operates exclusively on the Amazon Relay Load Board
+(Layout A: div.load-card). The Contracts / Block view (Layout B,
+data-type tour-container, data-tag offer-row) is explicitly excluded
+from this MVP — it is a future separate project with its own spec.
+
 ## MVP features
 1. Auto-refresh via Amazon's internal refresh button (speed slider)
-2. Parse loads (Layout A and Layout B)
+2. Parse loads — Load Board Layout A ONLY (div.load-card)
 3. Detect new loads
 4. Highlight new loads + play one sound
 5. Auto-open details of highest-paying new load (neutral zone click)
@@ -25,6 +31,7 @@ Carrier dispatchers monitoring the Amazon Relay Load Board.
 - AI agent (future Phase 3+)
 - Auto-booking / one-click booking (future, separate spec)
 - Auto-Submit for PAT
+- Contracts / Block / Layout B parsing (future separate project)
 
 ## Constraints
 - Must not break Amazon Relay UI
