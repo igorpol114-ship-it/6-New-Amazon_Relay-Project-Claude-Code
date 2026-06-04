@@ -15,6 +15,7 @@
       "utils/storage.js",
       "content/refreshManager.js",
       "content/loadParser.js",
+      "content/loadDetector.js",
       "content/sidebar.js",
       "content/content.js"
     ],

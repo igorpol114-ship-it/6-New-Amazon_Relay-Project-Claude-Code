@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Stage 10 — 2026-06-04
+- Added: content/loadDetector.js — detectNewLoads(loads): Set-based diff, first-run seeding (returns empty on first call), skips null loadIds; resetKnownLoads(); __EXT_DEBUG.detectNewLoads + resetKnownLoads exposed; NO clicks, NO highlighting, NOT wired to refresh loop
+- Updated: manifest.json — content/loadDetector.js added after loadParser.js, before sidebar.js
+
 ### Stage 9 fix — 2026-06-04
 - Updated: utils/storage.js — added STORAGE_KEYS.RUNNING = 'isRunning'
 - Updated: content/sidebar.js — restores running state from storage on init; toggle click persists STORAGE_KEYS.RUNNING; sidebar and popup now fully in sync via storage
