@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Stage 13 — 2026-06-04
+- Added: content/detailOpener.js — openTopNewLoad(newLoads): 4-gate safety check (existence, isForbiddenElement, DOM membership), NEUTRAL_ZONE intent log, ONE el.click() on card body; __EXT_DEBUG.openTopNew exposed; NOT wired to refresh loop
+- Updated: manifest.json — content/detailOpener.js added after soundAlert.js, before sidebar.js
+- Updated: docs/SAFETY.md — "Sole .click()" section updated to record both click sites (refreshNow + openTopNewLoad)
+
 ### Stage 12 — 2026-06-04
 - Added: content/soundAlert.js — lazy AudioContext; playAlert(): checks SOUND_MUTED, resumes suspended ctx, plays 880Hz+1100Hz two-tone beep via OscillatorNode+GainNode, try/catch; __EXT_DEBUG.playAlert exposed; NO clicks, NOT wired to detector
 - Updated: utils/storage.js — added STORAGE_KEYS.SOUND_MUTED = 'soundMuted'

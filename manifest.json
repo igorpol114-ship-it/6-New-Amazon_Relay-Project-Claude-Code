@@ -18,6 +18,7 @@
       "content/loadDetector.js",
       "content/highlighter.js",
       "content/soundAlert.js",
+      "content/detailOpener.js",
       "content/sidebar.js",
       "content/content.js"
     ],

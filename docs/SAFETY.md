@@ -43,17 +43,26 @@ neutral-zone click, filling PAT form, storage.
 
 NOT IN SCOPE: clicking Book, clicking Submit, any auto-acceptance.
 
-## Sole .click() Call Site (recorded Stage 7)
-The ONE and ONLY .click() in the codebase is in:
+## Allowed .click() Call Sites (updated Stage 13)
+There are exactly TWO .click() calls in the entire codebase:
+
+### Click 1 — Refresh button (Stage 7)
   content/refreshManager.js → refreshNow() → button.click()
+  Reachable ONLY if ALL pass:
+    1. findRefreshButton() returns non-null
+    2. isForbiddenElement(button) returns false
+    3. button.tagName === 'BUTTON'
+  Not called automatically. Manual via __EXT_DEBUG.refreshNow only.
 
-It is reachable ONLY if ALL of the following pass:
-  1. findRefreshButton() returns a non-null element
-  2. isForbiddenElement(button) returns false
-  3. button.tagName === 'BUTTON'
-
-refreshNow() is NOT called automatically. No setInterval, no auto-trigger.
-It is exposed only on window.__EXT_DEBUG.refreshNow for manual testing.
+### Click 2 — Neutral zone / load card body (Stage 13)
+  content/detailOpener.js → openTopNewLoad() → el.click()
+  Reachable ONLY if ALL pass:
+    1. newLoads array is non-empty
+    2. load._element is non-null
+    3. isForbiddenElement(_element) returns false
+    4. document.contains(_element) is true
+  Clicks div.load-card body only — opens details panel, does NOT book.
+  Not called automatically. Manual via __EXT_DEBUG.openTopNew only.
 
 ## Audit Checklist (Stage 17)
 - [ ] grep "\.click()" → only refreshNow() in refreshManager.js + neutral zone (Stage 13)
