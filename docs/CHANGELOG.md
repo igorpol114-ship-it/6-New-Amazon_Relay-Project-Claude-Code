@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Stage 12 — 2026-06-04
+- Added: content/soundAlert.js — lazy AudioContext; playAlert(): checks SOUND_MUTED, resumes suspended ctx, plays 880Hz+1100Hz two-tone beep via OscillatorNode+GainNode, try/catch; __EXT_DEBUG.playAlert exposed; NO clicks, NOT wired to detector
+- Updated: utils/storage.js — added STORAGE_KEYS.SOUND_MUTED = 'soundMuted'
+- Updated: manifest.json — content/soundAlert.js added after highlighter.js, before sidebar.js
+
 ### Stage 11.5 fix — 2026-06-04
 - Updated: content/loadParser.js — parseLoads() now scopes to first div.load-list only (main results); "Similar matches" second list ignored; parseOneCard() unchanged
 

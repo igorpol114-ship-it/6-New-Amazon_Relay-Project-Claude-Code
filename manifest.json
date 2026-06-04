@@ -17,6 +17,7 @@
       "content/loadParser.js",
       "content/loadDetector.js",
       "content/highlighter.js",
+      "content/soundAlert.js",
       "content/sidebar.js",
       "content/content.js"
     ],
