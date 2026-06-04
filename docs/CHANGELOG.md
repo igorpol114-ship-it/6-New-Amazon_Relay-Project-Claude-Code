@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Stage 11 — 2026-06-04
+- Added: content/highlighter.js — injectHighlightStyle() (once, guarded by id); highlightNewLoads(newLoads): adds .ext-new-load class; clearHighlights(): removes from all matching elements; __EXT_DEBUG.highlightNew + clearHighlights exposed; NO clicks, NOT wired to refresh loop
+- Updated: manifest.json — content/highlighter.js added after loadDetector.js, before sidebar.js
+
 ### Stage 10 — 2026-06-04
 - Added: content/loadDetector.js — detectNewLoads(loads): Set-based diff, first-run seeding (returns empty on first call), skips null loadIds; resetKnownLoads(); __EXT_DEBUG.detectNewLoads + resetKnownLoads exposed; NO clicks, NO highlighting, NOT wired to refresh loop
 - Updated: manifest.json — content/loadDetector.js added after loadParser.js, before sidebar.js

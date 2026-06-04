@@ -16,6 +16,7 @@
       "content/refreshManager.js",
       "content/loadParser.js",
       "content/loadDetector.js",
+      "content/highlighter.js",
       "content/sidebar.js",
       "content/content.js"
     ],
