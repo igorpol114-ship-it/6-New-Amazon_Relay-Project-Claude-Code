@@ -1,0 +1,141 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 320px;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  color: #222;
+  background: #fff;
+}
+
+.popup-container {
+  padding: 12px 16px 14px;
+}
+
+.popup-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.popup-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1a5c38;
+}
+
+.popup-version {
+  font-size: 11px;
+  color: #888;
+}
+
+.popup-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.popup-label {
+  flex: 0 0 100px;
+  font-size: 12px;
+  color: #444;
+  cursor: default;
+  user-select: none;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #ccc;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-track {
+  background: #1a5c38;
+}
+
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translateX(18px);
+}
+
+/* Speed slider */
+input[type="range"] {
+  flex: 1;
+  accent-color: #1a5c38;
+  cursor: pointer;
+}
+
+.popup-value {
+  flex: 0 0 36px;
+  text-align: right;
+  font-size: 11px;
+  color: #555;
+}
+
+.popup-divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 2px 0 12px;
+}
+
+.popup-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.popup-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.popup-status-label {
+  font-size: 11px;
+  color: #888;
+  user-select: none;
+}
+
+.popup-status-value {
+  font-size: 11px;
+  color: #444;
+  font-weight: 600;
+}

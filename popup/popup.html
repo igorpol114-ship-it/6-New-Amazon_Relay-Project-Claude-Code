@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon Relay Helper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+
+    <div class="popup-header">
+      <span class="popup-title">Amazon Relay Helper</span>
+      <span class="popup-version" data-testid="popup-version">v0.1.0</span>
+    </div>
+
+    <div class="popup-row">
+      <label class="popup-label" for="popup-toggle">Active</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="popup-toggle" data-testid="popup-toggle">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="popup-row">
+      <label class="popup-label" for="popup-speed-slider">Refresh speed</label>
+      <input type="range" id="popup-speed-slider" data-testid="popup-slider-speed"
+             min="0.5" max="8" step="0.5" value="2">
+      <span id="popup-speed-value" data-testid="popup-slider-value" class="popup-value">2.0s</span>
+    </div>
+
+    <div class="popup-divider"></div>
+
+    <div class="popup-status">
+      <div class="popup-status-row">
+        <span class="popup-status-label">Loads visible</span>
+        <span id="popup-load-count" data-testid="popup-load-count" class="popup-status-value">—</span>
+      </div>
+      <div class="popup-status-row">
+        <span class="popup-status-label">Last refresh</span>
+        <span id="popup-last-refresh" data-testid="popup-last-refresh" class="popup-status-value">—</span>
+      </div>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -18,11 +18,12 @@ When reporting a bug, use the testid name.
 ## Popup (Stage 9)
 | testid | Type | Function |
 |--------|------|----------|
-| popup-slider-speed | range | Speed (synced) |
-| popup-sound-select | select | Choose 1 of 20 sounds |
-| popup-btn-preview | button | Preview selected sound |
-| popup-toggle-sound | checkbox | Sound on/off |
-| popup-btn-start | button | Start (synced) |
+| popup-version | span | Extension version display — Stage 9 |
+| popup-toggle | checkbox | Active on/off; writes isRunning to storage — Stage 9 |
+| popup-slider-speed | range | Speed (0.5–8s, synced with sidebar via storage) — Stage 9 |
+| popup-slider-value | span | Shows current speed e.g. "2.0s" — Stage 9 |
+| popup-load-count | span | Read-only: last known load count from storage — Stage 9 |
+| popup-last-refresh | span | Read-only: last refresh timestamp from storage — Stage 9 |
 
 ## PAT Modal (Stage 14)
 | testid | Type | Function |

@@ -22,6 +22,7 @@
   }],
 
   "action": {
-    "default_title": "Amazon Relay Helper"
+    "default_title": "Amazon Relay Helper",
+    "default_popup": "popup/popup.html"
   }
 }

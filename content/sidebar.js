@@ -48,7 +48,7 @@ async function buildSidebar() {
   title.setAttribute('data-testid', 'ext-sidebar-title');
   title.textContent = EXT_NAME;
 
-  // Toggle button — tracks own state in data-running attribute
+  // Toggle button — default values, overwritten by storage restore below
   const toggle = document.createElement('button');
   toggle.setAttribute('data-testid', 'ext-btn-toggle');
   toggle.setAttribute('data-running', 'false');
@@ -76,10 +76,14 @@ async function buildSidebar() {
 
   document.body.appendChild(container);
 
-  // Restore saved speed before attaching listeners
-  const savedSpeed = await storage.get(STORAGE_KEYS.SPEED, 2);
+  // Restore saved state before attaching listeners
+  const savedSpeed   = await storage.get(STORAGE_KEYS.SPEED,   2);
   slider.value = String(savedSpeed);
   sliderValue.textContent = parseFloat(savedSpeed).toFixed(1) + 's';
+
+  const savedRunning = await storage.get(STORAGE_KEYS.RUNNING, false);
+  toggle.setAttribute('data-running', String(savedRunning));
+  toggle.textContent = savedRunning ? 'Stop' : 'Start';
 
   // --- Event listeners ---
   // CLAUDE.md rule 2: addEventListener only, never inline handlers
@@ -90,6 +94,7 @@ async function buildSidebar() {
     const nowRunning = toggle.getAttribute('data-running') !== 'true';
     toggle.setAttribute('data-running', String(nowRunning));
     toggle.textContent = nowRunning ? 'Stop' : 'Start';
+    storage.set(STORAGE_KEYS.RUNNING, nowRunning);
   });
 
   slider.addEventListener('input', function () {

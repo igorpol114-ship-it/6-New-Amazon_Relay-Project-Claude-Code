@@ -1,5 +1,6 @@
 const STORAGE_KEYS = {
-  SPEED: 'refreshSpeedSeconds'
+  SPEED:   'refreshSpeedSeconds',
+  RUNNING: 'isRunning'
 };
 
 const storage = {

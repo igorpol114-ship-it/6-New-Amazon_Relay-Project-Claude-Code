@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Stage 9 fix — 2026-06-04
+- Updated: utils/storage.js — added STORAGE_KEYS.RUNNING = 'isRunning'
+- Updated: content/sidebar.js — restores running state from storage on init; toggle click persists STORAGE_KEYS.RUNNING; sidebar and popup now fully in sync via storage
+- Updated: popup/popup.js — comment updated confirming KEY_RUNNING literal matches STORAGE_KEYS.RUNNING; no logic change needed
+
+### Stage 9 — 2026-06-04
+- Added: popup/popup.html — CSP-safe (no inline scripts), links popup.css + popup.js
+- Added: popup/popup.css — 320px wide, green toggle switch, slider, status section
+- Added: popup/popup.js — reads/writes chrome.storage.local directly (isolated context); toggle writes isRunning; slider writes refreshSpeedSeconds; chrome.storage.onChanged keeps UI live; NO .click(), NO parsing
+- Updated: manifest.json — action.default_popup set to popup/popup.html
+- Updated: docs/UI_ELEMENTS.md — replaced placeholder popup entries with actual Stage 9 elements
+
 ### Stage 8 — 2026-06-02
 - Added: content/loadParser.js — parseOneCard() + parseLoads(); Layout A only (div.load-card / load-card__selected); parses loadId, payout, pricePerMile, distance, duration, stops, equipment, trailerLetter, loadingType, deadhead, tag, specialServices, _element; per-card try/catch; __EXT_DEBUG.getLoads exposed; NO .click(), NO auto-run
 - Updated: manifest.json — content/loadParser.js added after refreshManager.js, before sidebar.js
