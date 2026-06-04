@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Stage 6 — 2026-06-02
+- Added: content/refreshManager.js — findRefreshButton() (2-strategy fallback chain, NO .click()); refreshDryRun() (finds, logs, isForbiddenElement check, NO .click()); __EXT_DEBUG.refreshDryRun exposed for manual console testing only
+- Updated: manifest.json — content/refreshManager.js added after storage.js, before sidebar.js
+- Updated: docs/AMAZON_SELECTORS.md — replaced Refresh button TODO with verified fallback chain strategy (strategy 1: "Next Refresh" text → parent → button; strategy 2: SVG path d-attribute → .closest('button'))
+
 ### Stage 5 — 2026-06-02
 - Added: utils/storage.js — storage object with async get/set/remove/getAll wrapping chrome.storage.local; STORAGE_KEYS.SPEED constant defined here
 - Updated: manifest.json — utils/storage.js added after logger.js, before sidebar.js

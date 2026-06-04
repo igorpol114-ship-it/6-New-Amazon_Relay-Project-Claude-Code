@@ -3,11 +3,25 @@
 Pull stable selectors from AMAZON_DOM_REFERENCE.md.
 Update here if Amazon changes layout. Record verification date.
 
-## Refresh button ⚠️ TODO — USER MUST FILL
-Selector: [INSPECT MANUALLY before Stage 6]
-The refresh button is bottom-right with "Next Refresh Xs" text.
-Right-click it → Inspect → find aria-label or data attribute.
-Verified: ___
+## Refresh button ✅
+Verified: 2026-06-02
+Location: bottom-right of load board, adjacent to "Next Refresh Xs" countdown text.
+No stable id, no data-testid, no aria-label on the button itself. css-XXXX classes
+are auto-generated and must NOT be used. Use fallback chain below.
+
+Strategy 1 (primary):
+  Find every <p> element whose textContent includes "Next Refresh".
+  Take its parentElement and call querySelector('button') on it.
+  Anchor: the "Next Refresh" countdown text — stable Amazon-owned string.
+
+Strategy 2 (SVG fallback):
+  Find every <path> element. Match its d attribute against the refresh icon geometry:
+    d = "M20.128 2l-.493 5.635L14 7.142M19.44 6.935a9 9 0 101.023 8.134"
+  Call .closest('button') on the matching path.
+  Anchor: SVG path geometry — does not change with CSS rebuilds.
+
+If both strategies fail: log error, return null, do NOT attempt click.
+Implementation: content/refreshManager.js → findRefreshButton()
 
 ## Load card (Layout A) ✅
 Container: div.load-card
