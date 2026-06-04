@@ -83,10 +83,17 @@ function parseOneCard(card) {
 function parseLoads() {
   logger.log('loadParser', 'parseLoads called');
 
-  const cards = document.querySelectorAll('div.load-card, div.load-card__selected');
+  // Use only the FIRST div.load-list (main results).
+  // The second div.load-list is "Similar matches" — ignored entirely.
+  const mainList = document.querySelector('div.load-list');
+  if (!mainList) {
+    logger.warn('loadParser', 'no load-list found');
+    return [];
+  }
+  const cards = mainList.querySelectorAll('div.load-card, div.load-card__selected');
 
   if (cards.length === 0) {
-    logger.warn('loadParser', 'no load-card elements found');
+    logger.warn('loadParser', 'no load-card elements found in main load-list');
     return [];
   }
 
