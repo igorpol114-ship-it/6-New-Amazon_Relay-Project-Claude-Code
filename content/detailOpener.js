@@ -1,6 +1,9 @@
 // Stage 13 — neutral-zone click to open load details.
-// This is the SECOND allowed .click() in the codebase (see SAFETY.md).
-// Target: div.load-card body only. isForbiddenElement() MUST return false before click.
+// This is the SECOND allowed click site in the codebase (see SAFETY.md).
+// Target: inner element of div.load-card body, resolved via elementFromPoint
+//         at a point biased left (30% width) to stay away from the Book button.
+// isForbiddenElement() MUST return false on BOTH the card container AND the
+// resolved target before any .click() is called.
 // NO booking. NO Layout B. ONE card per call only.
 
 function openTopNewLoad(newLoads) {
@@ -22,7 +25,7 @@ function openTopNewLoad(newLoads) {
     return false;
   }
 
-  // Gate 2: MANDATORY — isForbiddenElement must return false
+  // Gate 2: MANDATORY — isForbiddenElement must return false on the card container
   if (isForbiddenElement(el)) {
     logger.error('detailOpener', 'BLOCKED: target matched FORBIDDEN selector — NOT clicking', {
       loadId: load.loadId
@@ -44,10 +47,38 @@ function openTopNewLoad(newLoads) {
     payout: load.payout
   });
 
-  // THE SECOND ALLOWED .click() in the codebase.
-  // Clicks the div.load-card body (neutral zone) — opens details panel, does NOT book.
-  // isForbiddenElement confirmed false above. ONE click on ONE card only.
-  el.click();
+  // Resolve the actual inner element at a point biased left (30% width, 50% height)
+  // to stay well away from the Book button that sits on the right side of the card.
+  var r      = el.getBoundingClientRect();
+  var x      = r.left + r.width  * 0.3;
+  var y      = r.top  + r.height * 0.5;
+  var target = document.elementFromPoint(x, y);
+
+  if (!target) {
+    logger.warn('detailOpener', 'elementFromPoint returned null — NOT clicking', {
+      loadId: load.loadId, x: x, y: y
+    });
+    return false;
+  }
+
+  // SAFETY: resolved target must not be a forbidden element
+  if (isForbiddenElement(target)) {
+    logger.error('detailOpener', 'BLOCKED: elementFromPoint resolved to a forbidden element — NOT clicking', {
+      loadId: load.loadId, tagName: target.tagName, id: target.id
+    });
+    return false;
+  }
+
+  // SAFETY: resolved target must be inside the card; fall back to card itself if not
+  if (!el.contains(target) && target !== el) {
+    logger.warn('detailOpener', 'resolved target outside card, falling back to card element', {
+      loadId: load.loadId, targetTag: target.tagName
+    });
+    target = el;
+  }
+
+  // ONE .click() on the resolved inner element (neutral zone). NOT a booking element.
+  target.click();
 
   logger.log('detailOpener', 'neutral zone click sent — details panel should open', {
     loadId: load.loadId,

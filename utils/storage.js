@@ -1,7 +1,8 @@
 const STORAGE_KEYS = {
   SPEED:       'refreshSpeedSeconds',
   RUNNING:     'isRunning',
-  SOUND_MUTED: 'soundMuted'
+  SOUND_MUTED: 'soundMuted',
+  AUTO_OPEN:   'autoOpenTopNew'
 };
 
 const storage = {

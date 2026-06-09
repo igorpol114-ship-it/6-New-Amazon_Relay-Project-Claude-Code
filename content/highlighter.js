@@ -7,10 +7,7 @@ function injectHighlightStyle() {
   style.id = 'ext-highlight-style';
   style.textContent =
     '.ext-new-load {' +
-      'outline: 3px solid #1a5c38 !important;' +
-      'outline-offset: -3px !important;' +
-      'box-shadow: 0 0 0 2px rgba(26,92,56,0.25) !important;' +
-      'transition: outline 0.2s;' +
+      'background-color: rgb(182, 227, 255) !important;' +
     '}';
   document.head.appendChild(style);
 }

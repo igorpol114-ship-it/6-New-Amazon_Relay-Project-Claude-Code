@@ -103,5 +103,16 @@ async function buildSidebar() {
     storage.set(STORAGE_KEYS.SPEED, parseFloat(slider.value));
   });
 
+  // Keep toggle in sync when RUNNING changes from any source
+  // (orchestrator auto-stop, popup, etc). Read-only — no storage.set here.
+  chrome.storage.onChanged.addListener(function (changes, area) {
+    if (area !== 'local') return;
+    if (!changes[STORAGE_KEYS.RUNNING]) return;
+    var running = changes[STORAGE_KEYS.RUNNING].newValue;
+    toggle.setAttribute('data-running', String(running));
+    toggle.textContent = running ? 'Stop' : 'Start';
+    logger.log('sidebar', 'toggle synced from storage change', { running: running });
+  });
+
   logger.log('sidebar', 'sidebar injected');
 }
