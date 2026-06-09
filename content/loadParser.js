@@ -90,7 +90,7 @@ function parseLoads() {
     logger.warn('loadParser', 'no load-list found');
     return [];
   }
-  const cards = mainList.querySelectorAll('div.load-card, div.load-card__selected');
+  const cards = mainList.querySelectorAll('div.load-card, div.load-card__selected, div.wo-card-header--highlighted');
 
   if (cards.length === 0) {
     logger.warn('loadParser', 'no load-card elements found in main load-list');
