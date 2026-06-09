@@ -1,6 +1,7 @@
 logger.log('content', 'extension loaded', { version: EXT_VERSION });
 
 buildSidebar();
+initManualToggle();
 
 // --- Orchestrator ---
 
@@ -37,10 +38,23 @@ async function orchestratorTick() {
     if (result.newCount > 0) {
       highlightNewLoads(result.newLoads);
       await playAlert();
+
       var autoOpen = await storage.get(STORAGE_KEYS.AUTO_OPEN, true);
+      var opened   = false;
       if (autoOpen) {
-        openTopNewLoad(result.newLoads);
+        opened = openTopNewLoad(result.newLoads);
       }
+
+      if (autoOpen && opened) {
+        await sleep(800);
+        try {
+          showInlinePanel(result.newLoads[0]._element);
+          logger.log('content', 'inline panel shown for top new load');
+        } catch (e) {
+          logger.warn('content', 'inline panel render failed', { error: e });
+        }
+      }
+
       await storage.set(STORAGE_KEYS.RUNNING, false);
       stopOrchestrator();
       logger.log('content', 'new loads found — auto-stopping loop for dispatcher review', {

@@ -19,6 +19,7 @@
       "content/highlighter.js",
       "content/soundAlert.js",
       "content/detailOpener.js",
+      "content/inlinePanel.js",
       "content/sidebar.js",
       "content/content.js"
     ],
