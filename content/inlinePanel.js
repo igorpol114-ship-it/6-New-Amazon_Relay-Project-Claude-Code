@@ -62,6 +62,23 @@ function injectPanelStyle() {
   document.head.appendChild(style);
 }
 
+// Polls until Amazon's native sheet has rendered segments, then calls callback.
+// Fires as soon as ready; falls back after 1500ms regardless.
+function waitForSheet(callback) {
+  var POLL_MS  = 50;
+  var MAX_MS   = 1500;
+  var elapsed  = 0;
+  var interval = setInterval(function () {
+    elapsed += POLL_MS;
+    var sheet = document.querySelector(SHEET_SELECTOR);
+    var ready = sheet && sheet.querySelector('.load-expander');
+    if (ready || elapsed >= MAX_MS) {
+      clearInterval(interval);
+      callback();
+    }
+  }, POLL_MS);
+}
+
 function parseStopBlock(block) {
   var addrContainer = block.querySelector('.css-w1kk5u');
   var name          = '';
@@ -442,15 +459,15 @@ function initManualToggle() {
       return;
     }
 
-    // Toggle on: wait for Amazon's native sheet to render, then show our panel
-    setTimeout(function () {
+    // Toggle on: wait for Amazon's native sheet to render segments, then show our panel
+    waitForSheet(function () {
       try {
         var ok = showInlinePanel(card);
         if (ok) { currentPanelCard = card; }
       } catch (e) {
         logger.warn('inlinePanel', 'manual toggle render failed', { error: e });
       }
-    }, 800);
+    });
   });
 
   logger.log('inlinePanel', 'manual toggle initialized');
