@@ -47,44 +47,54 @@ function openTopNewLoad(newLoads) {
     payout: load.payout
   });
 
-  // Resolve the actual inner element at a point biased left (30% width, 50% height)
-  // to stay well away from the Book button that sits on the right side of the card.
-  var r      = el.getBoundingClientRect();
-  var x      = r.left + r.width  * 0.3;
-  var y      = r.top  + r.height * 0.5;
-  var target = document.elementFromPoint(x, y);
-
-  if (!target) {
-    logger.warn('detailOpener', 'elementFromPoint returned null — NOT clicking', {
-      loadId: load.loadId, x: x, y: y
-    });
-    return false;
+  // Scroll the card into view so elementFromPoint can resolve a target,
+  // then schedule the point-resolve + click after layout settles.
+  try {
+    el.scrollIntoView({ block: 'center', inline: 'nearest' });
+  } catch (scrollErr) {
+    logger.warn('detailOpener', 'scrollIntoView failed (ignored)', { error: scrollErr });
   }
 
-  // SAFETY: resolved target must not be a forbidden element
-  if (isForbiddenElement(target)) {
-    logger.error('detailOpener', 'BLOCKED: elementFromPoint resolved to a forbidden element — NOT clicking', {
-      loadId: load.loadId, tagName: target.tagName, id: target.id
+  setTimeout(function () {
+    // Re-read rect after scroll has settled
+    var r      = el.getBoundingClientRect();
+    var x      = r.left + r.width  * 0.3;
+    var y      = r.top  + r.height * 0.5;
+    var target = document.elementFromPoint(x, y);
+
+    if (!target) {
+      logger.warn('detailOpener', 'elementFromPoint returned null — NOT clicking', {
+        loadId: load.loadId, x: x, y: y
+      });
+      return;
+    }
+
+    // SAFETY: resolved target must not be a forbidden element
+    if (isForbiddenElement(target)) {
+      logger.error('detailOpener', 'BLOCKED: elementFromPoint resolved to a forbidden element — NOT clicking', {
+        loadId: load.loadId, tagName: target.tagName, id: target.id
+      });
+      return;
+    }
+
+    // SAFETY: resolved target must be inside the card; fall back to card itself if not
+    if (!el.contains(target) && target !== el) {
+      logger.warn('detailOpener', 'resolved target outside card, falling back to card element', {
+        loadId: load.loadId, targetTag: target.tagName
+      });
+      target = el;
+    }
+
+    // ONE .click() on the resolved inner element (neutral zone). NOT a booking element.
+    target.click();
+
+    logger.log('detailOpener', 'neutral zone click sent — details panel should open', {
+      loadId: load.loadId,
+      payout: load.payout
     });
-    return false;
-  }
+  }, 250);
 
-  // SAFETY: resolved target must be inside the card; fall back to card itself if not
-  if (!el.contains(target) && target !== el) {
-    logger.warn('detailOpener', 'resolved target outside card, falling back to card element', {
-      loadId: load.loadId, targetTag: target.tagName
-    });
-    target = el;
-  }
-
-  // ONE .click() on the resolved inner element (neutral zone). NOT a booking element.
-  target.click();
-
-  logger.log('detailOpener', 'neutral zone click sent — details panel should open', {
-    loadId: load.loadId,
-    payout: load.payout
-  });
-
+  // Return true optimistically — the click is scheduled and will fire after scroll settles
   return true;
 }
 
