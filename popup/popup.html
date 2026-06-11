@@ -14,33 +14,80 @@
       <span class="popup-version" data-testid="popup-version">v0.1.0</span>
     </div>
 
+    <div class="popup-section-title">Display &amp; Alerts</div>
+
     <div class="popup-row">
-      <label class="popup-label" for="popup-toggle">Active</label>
+      <label class="popup-label" for="popup-night-mode">Night Mode</label>
       <label class="toggle-switch">
-        <input type="checkbox" id="popup-toggle" data-testid="popup-toggle">
+        <input type="checkbox" id="popup-night-mode" data-testid="popup-night-mode">
         <span class="toggle-track"></span>
       </label>
     </div>
 
     <div class="popup-row">
-      <label class="popup-label" for="popup-speed-slider">Refresh speed</label>
-      <input type="range" id="popup-speed-slider" data-testid="popup-slider-speed"
-             min="0.5" max="8" step="0.5" value="2">
-      <span id="popup-speed-value" data-testid="popup-slider-value" class="popup-value">2.0s</span>
+      <label class="popup-label" for="popup-tab-alert">Tab Alert</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="popup-tab-alert" data-testid="popup-tab-alert">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="popup-sound">
+      <div class="popup-sound-head">Sound</div>
+      <div class="popup-sound-row">
+        <span class="popup-sound-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"></path><line x1="22" y1="9" x2="16" y2="15"></line><line x1="16" y1="9" x2="22" y2="15"></line></svg>
+        </span>
+        <input type="range" id="popup-volume" data-testid="popup-volume" min="0" max="100" step="1" value="70">
+        <span class="popup-sound-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path></svg>
+        </span>
+      </div>
+      <select id="popup-sound-select" data-testid="popup-sound-select" class="popup-select">
+        <option value="default">Default chime</option>
+        <option value="soft">Soft ping</option>
+        <option value="sharp">Sharp alert</option>
+      </select>
+    </div>
+
+    <div class="popup-row">
+      <label class="popup-label" for="popup-surge">Price Surge Alert</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="popup-surge" data-testid="popup-surge">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="popup-row popup-row--sub">
+      <label class="popup-label" for="popup-surge-threshold">Threshold</label>
+      <div class="popup-amount">
+        <span class="popup-amount-sign">$</span>
+        <input type="number" id="popup-surge-threshold" data-testid="popup-surge-threshold" min="0" step="5" value="50" class="popup-amount-input">
+      </div>
     </div>
 
     <div class="popup-divider"></div>
 
-    <div class="popup-status">
-      <div class="popup-status-row">
-        <span class="popup-status-label">Loads visible</span>
-        <span id="popup-load-count" data-testid="popup-load-count" class="popup-status-value">—</span>
-      </div>
-      <div class="popup-status-row">
-        <span class="popup-status-label">Last refresh</span>
-        <span id="popup-last-refresh" data-testid="popup-last-refresh" class="popup-status-value">—</span>
-      </div>
+    <div class="popup-section-title">Load Board Filters</div>
+
+    <div class="popup-row">
+      <label class="popup-label popup-label--wide" for="popup-hide-promoted">Hide Promoted &amp; Starting Soon</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="popup-hide-promoted" data-testid="popup-hide-promoted">
+        <span class="toggle-track"></span>
+      </label>
     </div>
+
+    <div class="popup-row">
+      <label class="popup-label popup-label--wide" for="popup-hide-similar">Hide Similar Matches</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="popup-hide-similar" data-testid="popup-hide-similar">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="popup-divider"></div>
+
+    <button type="button" id="popup-reset" data-testid="popup-reset" class="popup-reset">Reset to defaults</button>
 
   </div>
   <script src="popup.js"></script>
