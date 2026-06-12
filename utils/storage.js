@@ -4,7 +4,8 @@ const STORAGE_KEYS = {
   SOUND_MUTED: 'soundMuted',
   AUTO_OPEN:   'autoOpenTopNew',
   NIGHT_MODE:  'nightMode',
-  TAB_ALERT:   'tabAlert'
+  TAB_ALERT:   'tabAlert',
+  HIDE_SIMILAR: 'hideSimilarMatches'
 };
 
 const storage = {
