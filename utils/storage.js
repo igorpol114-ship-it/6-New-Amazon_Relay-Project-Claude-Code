@@ -2,7 +2,9 @@ const STORAGE_KEYS = {
   SPEED:       'refreshSpeedSeconds',
   RUNNING:     'isRunning',
   SOUND_MUTED: 'soundMuted',
-  AUTO_OPEN:   'autoOpenTopNew'
+  AUTO_OPEN:   'autoOpenTopNew',
+  NIGHT_MODE:  'nightMode',
+  TAB_ALERT:   'tabAlert'
 };
 
 const storage = {

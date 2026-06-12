@@ -1,5 +1,13 @@
 # Rules for Claude Code
 
+## Working roles
+- **Claude Desktop = Project Manager**: writes the prompts, tracks the project, decides sequencing. Does NOT write production code directly.
+- **Claude Code = executor**: applies the prompts, writes the actual files.
+
+## Token economy
+- Do NOT request extra files or re-verify working code without a real need. If something already works, leave it alone.
+- At the END of every completed step, write all changes/notes into the MD docs (CHANGELOG.md, UI_ELEMENTS.md, BACKLOG.md as appropriate).
+
 ## Before ANY change
 1. Read SPEC.md, SAFETY.md, UI_ELEMENTS.md
 2. Read CHANGELOG.md for recent changes
@@ -10,6 +18,7 @@
 2. New UI element → add to UI_ELEMENTS.md
 3. New Amazon selector → add to AMAZON_SELECTORS.md
 4. Bug fixed → add test to TEST_CASES.md
+5. New planned feature / backlog change → update BACKLOG.md
 
 ## Code rules
 1. NEVER use jQuery
