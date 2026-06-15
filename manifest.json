@@ -22,6 +22,7 @@
       "content/soundAlert.js",
       "content/detailOpener.js",
       "content/inlinePanel.js",
+      "content/tabAlert.js",
       "content/sidebar.js",
       "content/content.js"
     ],

@@ -1,11 +1,12 @@
 const STORAGE_KEYS = {
-  SPEED:       'refreshSpeedSeconds',
-  RUNNING:     'isRunning',
-  SOUND_MUTED: 'soundMuted',
-  AUTO_OPEN:   'autoOpenTopNew',
-  NIGHT_MODE:  'nightMode',
-  TAB_ALERT:   'tabAlert',
-  HIDE_SIMILAR: 'hideSimilarMatches'
+  SPEED:        'refreshSpeedSeconds',
+  RUNNING:      'isRunning',
+  AUTO_OPEN:    'autoOpenTopNew',
+  NIGHT_MODE:   'nightMode',
+  TAB_ALERT:    'tabAlert',
+  HIDE_SIMILAR: 'hideSimilarMatches',
+  VOLUME:       'soundVolume',
+  SOUND_ID:     'soundId'
 };
 
 const storage = {

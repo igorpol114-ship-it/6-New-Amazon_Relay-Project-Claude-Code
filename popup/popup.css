@@ -166,6 +166,17 @@ input[type="range"] {
   display: block;
 }
 
+/* Sound select row: dropdown + replay button side by side */
+.popup-sound-select-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.popup-sound-select-row .popup-select {
+  flex: 1;
+}
+
 .popup-select {
   width: 100%;
   font-size: 12px;
@@ -176,6 +187,31 @@ input[type="range"] {
   font-family: inherit;
   color: #333;
   cursor: pointer;
+}
+
+/* Replay button */
+.popup-sound-replay {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: #1a5c38;
+  font-size: 10px;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.popup-sound-replay:hover {
+  background: #1a5c38;
+  color: #fff;
+  border-color: #1a5c38;
 }
 
 /* Threshold amount */

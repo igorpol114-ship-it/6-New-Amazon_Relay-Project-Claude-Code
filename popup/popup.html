@@ -43,11 +43,37 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path></svg>
         </span>
       </div>
-      <select id="popup-sound-select" data-testid="popup-sound-select" class="popup-select">
-        <option value="default">Default chime</option>
-        <option value="soft">Soft ping</option>
-        <option value="sharp">Sharp alert</option>
-      </select>
+      <div class="popup-sound-select-row">
+        <select id="popup-sound-select" data-testid="popup-sound-select" class="popup-select">
+          <option value="default">Default chime</option>
+          <option value="soft">Soft ping</option>
+          <option value="sharp">Sharp beep</option>
+          <option value="bell">Bell</option>
+          <option value="deep">Deep bong</option>
+          <option value="high">High tick</option>
+          <option value="click">Click</option>
+          <option value="ding">Bright ding</option>
+          <option value="sonar">Sonar ping</option>
+          <option value="low">Low buzz</option>
+          <option value="blip">Retro blip</option>
+          <option value="wood">Wood block</option>
+          <option value="double">Double ping</option>
+          <option value="notify">Notify</option>
+          <option value="drop">Drop</option>
+          <option value="triple">Triple blip</option>
+          <option value="alarm">Alarm siren</option>
+          <option value="fanfare">Fanfare</option>
+          <option value="sparkle">Sparkle</option>
+          <option value="sweep_up">Rising sweep</option>
+          <option value="sweep_down">Falling sweep</option>
+          <option value="chord">Major chord</option>
+          <option value="dial">Dial tone</option>
+          <option value="burst">Pulse burst</option>
+          <option value="error">Error tone</option>
+        </select>
+        <button type="button" id="popup-sound-replay" data-testid="popup-sound-replay"
+                class="popup-sound-replay" aria-label="Preview sound">&#9654;</button>
+      </div>
     </div>
 
     <div class="popup-row">

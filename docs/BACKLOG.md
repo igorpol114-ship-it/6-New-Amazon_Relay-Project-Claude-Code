@@ -14,14 +14,8 @@ CSS-class-toggle approach: `html.ext-night` class toggled by `content/nightMode.
 ### Tab Alert ✅ DONE
 `content/tabAlert.js` calls `flashTabAlert()` (async, reads `STORAGE_KEYS.TAB_ALERT`). Blinking title ("🔔 " prefix, 750 ms interval) + orange favicon ("!") for 10 s. Clears on `visibilitychange` (user focuses tab). Called from content.js after `playAlert()`. Popup checkbox wired in `popup/popup.js`. Storage key: `STORAGE_KEYS.TAB_ALERT = 'tabAlert'`.
 
-### Sound block — Volume + Sound Selector (UI-BUILT)
-- `popup-volume` range (0–100): replaces the old `SOUND_MUTED` boolean. 0 = silent, 100 = full.
-  - Storage key to add: `STORAGE_KEYS.VOLUME = 'soundVolume'` (number 0–100, default 70)
-  - `soundAlert.js` currently checks `SOUND_MUTED`; update to read `VOLUME` and scale gain.
-  - Remove `STORAGE_KEYS.SOUND_MUTED` once volume is wired (or keep as alias for migration).
-- `popup-sound-select` dropdown: 3 placeholder options currently. Plan to expand to ~20 sounds.
-  - Storage key to add: `STORAGE_KEYS.SOUND_ID = 'soundId'` (string, default 'default')
-  - `soundAlert.js` generates the tone programmatically; different `SOUND_ID` values map to different oscillator configs.
+### Sound block ✅ DONE
+Volume slider (`popup-volume`) wired, persists as `soundVolume` (0–100, default 70). Sound selector (`popup-sound-select`) wired, persists as `soundId` (default `'default'`). 25 distinct sounds in `content/soundAlert.js` SOUND_DEFS dispatch table. Preview plays on dropdown change and replay button click. `SOUND_MUTED` fully removed. Both volume and soundId survive popup close/reopen.
 
 ### Price Surge Alert (UI-BUILT)
 Toggle (`popup-surge`) + threshold (`popup-surge-threshold`, $ number, default $50). When enabled: after each refresh diff, compare each load's current payout to the last known payout for that loadId. If the difference >= threshold, play alert + visually highlight that card differently.

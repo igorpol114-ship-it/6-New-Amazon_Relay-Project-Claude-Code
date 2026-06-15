@@ -23,8 +23,9 @@ When reporting a bug, use the testid name.
 | popup-version | span | Extension version display. |
 | popup-night-mode | checkbox | Night Mode toggle — dark theme over Relay site. **Wired** → writes `nightMode` to `chrome.storage.local`; `content/nightMode.js` toggles `html.ext-night` class live. |
 | popup-tab-alert | checkbox | Tab Alert toggle — flash tab title/favicon on new load. **Wired** → writes `tabAlert` to `chrome.storage.local`; `content/tabAlert.js` flashes title (🔔 prefix) and favicon (orange "!" icon) for 10 s, clears on tab focus. |
-| popup-volume | range | Sound volume 0–100. Replaces old SOUND_MUTED boolean. NOT wired. |
-| popup-sound-select | select | Sound selector dropdown (3 placeholder options). NOT wired. |
+| popup-volume | range | Sound volume 0–100. **Wired** → writes `soundVolume` to `chrome.storage.local` on slider release (`change`). Read back on popup open (default 70). `content/soundAlert.js` scales oscillator gain as `volume / 100`; `volume === 0` → silent. |
+| popup-sound-select | select | Sound selector dropdown (25 options). **Wired** → writes `soundId` to storage on `change`, then plays an immediate preview. Read back on popup open (default `'default'`). Sounds: default, soft, sharp, bell, deep, high, click, ding, sonar, low, blip, wood, double, notify, drop, triple, alarm, fanfare, sparkle, sweep_up, sweep_down, chord, dial, burst, error. |
+| popup-sound-replay | button | Icon-only replay button (▶) next to the dropdown. **Wired** → plays a preview of the currently selected sound at the current volume on click. |
 | popup-surge | checkbox | Price Surge Alert toggle. NOT wired. |
 | popup-surge-threshold | number | $ threshold for surge alert. NOT wired. |
 | popup-hide-promoted | checkbox | Hide Promoted & Starting Soon cards. NOT wired. |

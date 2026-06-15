@@ -38,6 +38,7 @@ async function orchestratorTick() {
     if (result.newCount > 0) {
       highlightNewLoads(result.newLoads);
       await playAlert();
+      if (typeof flashTabAlert === 'function') flashTabAlert(result.newCount);
 
       var autoOpen = await storage.get(STORAGE_KEYS.AUTO_OPEN, true);
       var opened   = false;
