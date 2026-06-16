@@ -1,5 +1,5 @@
 # Стан проекту
-Оновлено: 2026-06-11
+Оновлено: 2026-06-16
 
 ## Поточна фаза
 **Step 3 — Підключення контролів попапу до `chrome.storage.local`**
@@ -33,19 +33,24 @@
   - Sound select (`popup-sound-select`): **25 звуків** у dispatch-таблиці `SOUND_DEFS`. Зберігається як `soundId` (default `'default'`). Підтримка `freqEnd` для плавних sweep-тонів.
   - При зміні dropdown — негайний preview. Кнопка `popup-sound-replay` (▶) — повтор preview.
   - `SOUND_MUTED` повністю видалено. Sound block **ЗАКРИТО**.
+- **Hide tag filters ✅** — `content/filterTags.js`: три тогли в попапі — Promoted, Starting soon, Trailer ready. Ховає **лише значок тегу** (`visibility:hidden` на `[id="PROMOTED"]` / `[id="STARTING_SOON"]` / `[id="TRAILER_READY"]`). Картка залишається повністю видимою та бере участь у детекції нових вантажів. MutationObserver тільки поки ≥1 тогл ввімкнено. Ключі: `hidePromoted`, `hideStartingSoon`, `hideTrailerReady`.
+
+### Inline panel — візуальне доведення ✅
+- **Грід**: `40px minmax(0,3fr) 1.4fr 1fr 1fr 32px`. Route-колонка: origin + `→` + destination як окремі DOM-вузли (`textContent`). Monospace для кодів локацій. Dist·time — muted, centered.
+- **Стрілки вирівняні по колонці**: `.ext-seg-route` — внутрішній 2-колонковий грід `150px 1fr`. Origin у фіксованій 150px-колонці; `.ext-route-right` (arrow + dest) — у `1fr`. Стрілки завжди стоять в одній вертикальній лінії незалежно від довжини origin.
+- **Без badge-пілюль**: Loaded/Empty → plain text з кольором (`.ext-seg-loaded` / `.ext-seg-empty`). Drop/Live/Preloaded → plain text (`ext-seg-action`, muted). Усі тři badge-класи видалені.
 
 ---
 
 ## Що в роботі
-Нічого активного. Sound block (25 звуків) закрито 2026-06-15.
+Нічого активного. Inline panel **ЗАКРИТО** 2026-06-16.
 
 ---
 
 ## Що далі (1–2 кроки)
 
-1. **Hide Promoted & Starting Soon** — `popup-hide-promoted`: приховати картки з тегами `#STARTING_SOON` / `.wo-tag` через `display:none`. `loadDetector.js` має пропускати картки з `display:none`. Ключ: `STORAGE_KEYS.HIDE_PROMOTED = 'hidePromoted'`.
-
-2. **Price Surge Alert** — `popup-surge` + `popup-surge-threshold`: порівнювати поточний payout з останнім відомим для кожного loadId. Потребує per-loadId price-history store з очищенням. Ключі: `SURGE_ENABLED`, `SURGE_THRESHOLD`, `PRICE_HISTORY`.
+1. **Price Surge Alert** — `popup-surge` + `popup-surge-threshold`: порівнювати поточний payout з останнім відомим для кожного loadId. Потребує per-loadId price-history store з очищенням. Ключі: `SURGE_ENABLED`, `SURGE_THRESHOLD`, `PRICE_HISTORY`.
+2. **Reset to Defaults** — `popup-reset`: очищення всіх extension-ключів з `chrome.storage.local`.
 
 ---
 

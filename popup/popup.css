@@ -257,6 +257,47 @@ input[type="range"] {
   margin: 2px 0 12px;
 }
 
+/* Tag-filter row: three compact toggles side by side */
+.popup-tag-block {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.popup-tag-filter {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.popup-tag-label {
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Small toggle variant (30×16) used for tag filters */
+.toggle-switch--sm {
+  width: 30px;
+  height: 16px;
+}
+
+.toggle-switch--sm .toggle-track::after {
+  width: 10px;
+  height: 10px;
+  top: 3px;
+  left: 3px;
+}
+
+.toggle-switch--sm input:checked + .toggle-track::after {
+  transform: translateX(14px);
+}
+
 /* Reset button */
 .popup-reset {
   width: 100%;

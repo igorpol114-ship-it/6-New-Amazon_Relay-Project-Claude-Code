@@ -23,13 +23,27 @@ function injectPanelStyle() {
       'margin-left:auto;font-weight:bold;' +
     '}' +
     '.ext-seg-header{' +
-      'background:#f0f2f2;border-top:1px solid #e7e7e7;padding:8px 14px;' +
-      'display:flex;gap:0;justify-content:space-between;align-items:center;' +
+      'background:#f0f2f2;border-top:1px solid #e7e7e7;padding:10px 14px;' +
+      'display:grid;grid-template-columns:40px minmax(0,3fr) 1.4fr 1fr 1fr 32px;' +
+      'gap:0;align-items:center;' +
       'font-size:12px;color:#565959;cursor:pointer;user-select:none;' +
     '}' +
     '.ext-seg-header > span{padding:0 8px;}' +
-    '.ext-seg-header .ext-seg-title{font-weight:bold;color:#232f3e;}' +
-    '.ext-seg-header .ext-seg-arrow{transition:transform .15s;}' +
+    '.ext-seg-route{min-width:0;display:grid;grid-template-columns:150px 1fr;align-items:start;}' +
+    '.ext-route-origin{' +
+      'font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;' +
+      'overflow-wrap:break-word;word-break:break-word;min-width:0;' +
+    '}' +
+    '.ext-route-right{min-width:0;overflow-wrap:break-word;word-break:break-word;}' +
+    '.ext-route-dest{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;}' +
+    '.ext-route-arrow{font-size:1.15em;font-weight:700;color:#1a5c38;margin:0 0.45em;}' +
+    '.ext-seg-dist{color:#878787;font-size:11px;text-align:center;}' +
+    '.ext-seg-action{text-align:center;font-size:11px;color:#565959;}' +
+    '.ext-seg-status{text-align:center;font-size:11px;}' +
+    '.ext-seg-loaded{color:#1a5c38;font-weight:500;}' +
+    '.ext-seg-empty{color:#878787;}' +
+    '.ext-seg-header .ext-seg-title{font-weight:bold;color:#232f3e;text-align:center;padding:0 4px;}' +
+    '.ext-seg-header .ext-seg-arrow{transition:transform .15s;text-align:center;padding:0 4px;}' +
     '.ext-seg-header.ext-open .ext-seg-arrow{transform:rotate(180deg);}' +
     '.ext-seg-body{display:none;}' +
     '.ext-seg-body.ext-open{display:block;}' +
@@ -361,29 +375,60 @@ function buildPanelElement(data) {
       titleSpan.className = 'ext-seg-title';
       titleSpan.textContent = String(i + 1);
 
+      // Route column — origin, bold accent arrow, destination as separate nodes.
+      // Never uses innerHTML; each part set via textContent.
       var fromToSpan = document.createElement('span');
-      fromToSpan.textContent = segment.fromTo;
+      fromToSpan.className = 'ext-seg-route';
 
+      var routeParts = segment.fromTo.split(' → ');
+      var originText = routeParts[0] || '';
+      var destText   = routeParts.length > 1 ? routeParts.slice(1).join(' → ') : '';
+
+      var originEl = document.createElement('span');
+      originEl.className  = 'ext-route-origin';
+      originEl.textContent = originText;
+
+      var routeArrowEl = document.createElement('span');
+      routeArrowEl.className  = 'ext-route-arrow';
+      routeArrowEl.textContent = '→';
+
+      var destEl = document.createElement('span');
+      destEl.className  = 'ext-route-dest';
+      destEl.textContent = destText;
+
+      var routeRightEl = document.createElement('span');
+      routeRightEl.className = 'ext-route-right';
+      routeRightEl.appendChild(routeArrowEl);
+      routeRightEl.appendChild(destEl);
+
+      fromToSpan.appendChild(originEl);
+      fromToSpan.appendChild(routeRightEl);
+
+      // Distance · duration — muted secondary
       var milesSpan = document.createElement('span');
+      milesSpan.className = 'ext-seg-dist';
       milesSpan.textContent = segment.duration
         ? segment.miles + ' · ' + segment.duration
         : segment.miles;
 
+      // Action text (Drop/Live/Preloaded) — plain text; always emit span for grid
+      var loadTypeSpan = document.createElement('span');
+      loadTypeSpan.className = 'ext-seg-action';
+      loadTypeSpan.textContent = segment.loadType || '';
+
+      // Status text — plain text with subtle color; no pill/chip
       var loadedSpan = document.createElement('span');
+      loadedSpan.className = 'ext-seg-status ' + (segment.loaded ? 'ext-seg-loaded' : 'ext-seg-empty');
       loadedSpan.textContent = segment.loaded ? 'Loaded' : 'Empty';
 
       var arrowSpan = document.createElement('span');
-      arrowSpan.className = 'ext-seg-arrow';
+      arrowSpan.className  = 'ext-seg-arrow';
       arrowSpan.textContent = '⌄';
 
       segHeader.appendChild(titleSpan);
       segHeader.appendChild(fromToSpan);
       segHeader.appendChild(milesSpan);
-      if (segment.loadType) {
-        var loadTypeSpan = document.createElement('span');
-        loadTypeSpan.textContent = segment.loadType;
-        segHeader.appendChild(loadTypeSpan);
-      }
+      segHeader.appendChild(loadTypeSpan);
       segHeader.appendChild(loadedSpan);
       segHeader.appendChild(arrowSpan);
 

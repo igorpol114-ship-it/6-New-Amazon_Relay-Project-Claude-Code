@@ -1,12 +1,15 @@
 const STORAGE_KEYS = {
-  SPEED:        'refreshSpeedSeconds',
-  RUNNING:      'isRunning',
-  AUTO_OPEN:    'autoOpenTopNew',
-  NIGHT_MODE:   'nightMode',
-  TAB_ALERT:    'tabAlert',
-  HIDE_SIMILAR: 'hideSimilarMatches',
-  VOLUME:       'soundVolume',
-  SOUND_ID:     'soundId'
+  SPEED:              'refreshSpeedSeconds',
+  RUNNING:            'isRunning',
+  AUTO_OPEN:          'autoOpenTopNew',
+  NIGHT_MODE:         'nightMode',
+  TAB_ALERT:          'tabAlert',
+  HIDE_SIMILAR:       'hideSimilarMatches',
+  VOLUME:             'soundVolume',
+  SOUND_ID:           'soundId',
+  HIDE_PROMOTED:      'hidePromoted',
+  HIDE_STARTING_SOON: 'hideStartingSoon',
+  HIDE_TRAILER_READY: 'hideTrailerReady'
 };
 
 const storage = {

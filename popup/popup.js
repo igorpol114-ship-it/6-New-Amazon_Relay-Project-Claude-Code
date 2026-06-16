@@ -1,14 +1,18 @@
 // Popup — Step 3 wiring.
-// WIRED: Night Mode, Tab Alert, Hide Similar Matches, Sound (volume + sound select + preview).
-// NOT WIRED YET: Price Surge, Hide Promoted, Reset.
+// WIRED: Night Mode, Tab Alert, Hide Similar Matches, Sound (volume + sound select + preview),
+//        Hide Promoted, Hide Starting Soon, Hide Trailer Ready.
+// NOT WIRED YET: Price Surge, Reset.
 // Popup runs in its own isolated context: never clicks page elements, never
 // parses loads, never triggers refresh. State shared via chrome.storage.local.
 
-var KEY_NIGHT_MODE   = 'nightMode';          // STORAGE_KEYS.NIGHT_MODE
-var KEY_TAB_ALERT    = 'tabAlert';           // STORAGE_KEYS.TAB_ALERT
-var KEY_HIDE_SIMILAR = 'hideSimilarMatches'; // STORAGE_KEYS.HIDE_SIMILAR
-var KEY_VOLUME       = 'soundVolume';        // STORAGE_KEYS.VOLUME   (0–100, default 70)
-var KEY_SOUND_ID     = 'soundId';            // STORAGE_KEYS.SOUND_ID (string, default 'default')
+var KEY_NIGHT_MODE        = 'nightMode';          // STORAGE_KEYS.NIGHT_MODE
+var KEY_TAB_ALERT         = 'tabAlert';           // STORAGE_KEYS.TAB_ALERT
+var KEY_HIDE_SIMILAR      = 'hideSimilarMatches'; // STORAGE_KEYS.HIDE_SIMILAR
+var KEY_VOLUME            = 'soundVolume';        // STORAGE_KEYS.VOLUME   (0–100, default 70)
+var KEY_SOUND_ID          = 'soundId';            // STORAGE_KEYS.SOUND_ID (string, default 'default')
+var KEY_HIDE_PROMOTED     = 'hidePromoted';       // STORAGE_KEYS.HIDE_PROMOTED
+var KEY_HIDE_STARTING_SOON = 'hideStartingSoon';  // STORAGE_KEYS.HIDE_STARTING_SOON
+var KEY_HIDE_TRAILER_READY = 'hideTrailerReady';  // STORAGE_KEYS.HIDE_TRAILER_READY
 
 // ── Sound preview (popup context — mirrors soundAlert.js getSoundTones exactly) ──
 
@@ -194,22 +198,32 @@ async function previewSound(soundId, volume) {
 // ── DOMContentLoaded ──────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', function () {
-  var nightToggle   = document.getElementById('popup-night-mode');
-  var tabToggle     = document.getElementById('popup-tab-alert');
-  var similarToggle = document.getElementById('popup-hide-similar');
-  var volumeSlider  = document.getElementById('popup-volume');
-  var soundSelect   = document.getElementById('popup-sound-select');
-  var replayBtn     = document.getElementById('popup-sound-replay');
+  var nightToggle        = document.getElementById('popup-night-mode');
+  var tabToggle          = document.getElementById('popup-tab-alert');
+  var similarToggle      = document.getElementById('popup-hide-similar');
+  var volumeSlider       = document.getElementById('popup-volume');
+  var soundSelect        = document.getElementById('popup-sound-select');
+  var replayBtn          = document.getElementById('popup-sound-replay');
+  var promotedToggle     = document.getElementById('popup-hide-promoted');
+  var startingSoonToggle = document.getElementById('popup-hide-starting-soon');
+  var trailerReadyToggle = document.getElementById('popup-hide-trailer-ready');
 
   // ── Read all settings from storage and initialise the UI ──────────────────
   chrome.storage.local.get(
-    [KEY_NIGHT_MODE, KEY_TAB_ALERT, KEY_HIDE_SIMILAR, KEY_VOLUME, KEY_SOUND_ID],
+    [
+      KEY_NIGHT_MODE, KEY_TAB_ALERT, KEY_HIDE_SIMILAR,
+      KEY_VOLUME, KEY_SOUND_ID,
+      KEY_HIDE_PROMOTED, KEY_HIDE_STARTING_SOON, KEY_HIDE_TRAILER_READY
+    ],
     function (data) {
-      if (nightToggle)   nightToggle.checked  = data[KEY_NIGHT_MODE] === true;
-      if (tabToggle)     tabToggle.checked    = data[KEY_TAB_ALERT] === true;
-      if (similarToggle) similarToggle.checked = data[KEY_HIDE_SIMILAR] === true;
-      if (volumeSlider)  volumeSlider.value   = (data[KEY_VOLUME] !== undefined) ? data[KEY_VOLUME] : 70;
-      if (soundSelect)   soundSelect.value    = data[KEY_SOUND_ID] || 'default';
+      if (nightToggle)        nightToggle.checked        = data[KEY_NIGHT_MODE] === true;
+      if (tabToggle)          tabToggle.checked          = data[KEY_TAB_ALERT] === true;
+      if (similarToggle)      similarToggle.checked      = data[KEY_HIDE_SIMILAR] === true;
+      if (volumeSlider)       volumeSlider.value         = (data[KEY_VOLUME] !== undefined) ? data[KEY_VOLUME] : 70;
+      if (soundSelect)        soundSelect.value          = data[KEY_SOUND_ID] || 'default';
+      if (promotedToggle)     promotedToggle.checked     = data[KEY_HIDE_PROMOTED] === true;
+      if (startingSoonToggle) startingSoonToggle.checked = data[KEY_HIDE_STARTING_SOON] === true;
+      if (trailerReadyToggle) trailerReadyToggle.checked = data[KEY_HIDE_TRAILER_READY] === true;
     }
   );
 
@@ -259,13 +273,34 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  if (promotedToggle) {
+    promotedToggle.addEventListener('change', function () {
+      chrome.storage.local.set({ [KEY_HIDE_PROMOTED]: promotedToggle.checked });
+    });
+  }
+
+  if (startingSoonToggle) {
+    startingSoonToggle.addEventListener('change', function () {
+      chrome.storage.local.set({ [KEY_HIDE_STARTING_SOON]: startingSoonToggle.checked });
+    });
+  }
+
+  if (trailerReadyToggle) {
+    trailerReadyToggle.addEventListener('change', function () {
+      chrome.storage.local.set({ [KEY_HIDE_TRAILER_READY]: trailerReadyToggle.checked });
+    });
+  }
+
   // ── Live sync: storage → UI (handles changes from other extension pages) ──
   chrome.storage.onChanged.addListener(function (changes, area) {
     if (area !== 'local') return;
-    if (changes[KEY_NIGHT_MODE]   !== undefined && nightToggle)   nightToggle.checked   = changes[KEY_NIGHT_MODE].newValue === true;
-    if (changes[KEY_TAB_ALERT]    !== undefined && tabToggle)     tabToggle.checked     = changes[KEY_TAB_ALERT].newValue === true;
-    if (changes[KEY_HIDE_SIMILAR] !== undefined && similarToggle) similarToggle.checked = changes[KEY_HIDE_SIMILAR].newValue === true;
-    if (changes[KEY_VOLUME]       !== undefined && volumeSlider)  volumeSlider.value    = changes[KEY_VOLUME].newValue;
-    if (changes[KEY_SOUND_ID]     !== undefined && soundSelect)   soundSelect.value     = changes[KEY_SOUND_ID].newValue;
+    if (changes[KEY_NIGHT_MODE]         !== undefined && nightToggle)        nightToggle.checked        = changes[KEY_NIGHT_MODE].newValue === true;
+    if (changes[KEY_TAB_ALERT]          !== undefined && tabToggle)          tabToggle.checked          = changes[KEY_TAB_ALERT].newValue === true;
+    if (changes[KEY_HIDE_SIMILAR]       !== undefined && similarToggle)      similarToggle.checked      = changes[KEY_HIDE_SIMILAR].newValue === true;
+    if (changes[KEY_VOLUME]             !== undefined && volumeSlider)       volumeSlider.value         = changes[KEY_VOLUME].newValue;
+    if (changes[KEY_SOUND_ID]           !== undefined && soundSelect)        soundSelect.value          = changes[KEY_SOUND_ID].newValue;
+    if (changes[KEY_HIDE_PROMOTED]      !== undefined && promotedToggle)     promotedToggle.checked     = changes[KEY_HIDE_PROMOTED].newValue === true;
+    if (changes[KEY_HIDE_STARTING_SOON] !== undefined && startingSoonToggle) startingSoonToggle.checked = changes[KEY_HIDE_STARTING_SOON].newValue === true;
+    if (changes[KEY_HIDE_TRAILER_READY] !== undefined && trailerReadyToggle) trailerReadyToggle.checked = changes[KEY_HIDE_TRAILER_READY].newValue === true;
   });
 });

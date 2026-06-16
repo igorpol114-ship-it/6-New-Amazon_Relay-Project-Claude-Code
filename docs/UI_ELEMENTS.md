@@ -28,7 +28,9 @@ When reporting a bug, use the testid name.
 | popup-sound-replay | button | Icon-only replay button (▶) next to the dropdown. **Wired** → plays a preview of the currently selected sound at the current volume on click. |
 | popup-surge | checkbox | Price Surge Alert toggle. NOT wired. |
 | popup-surge-threshold | number | $ threshold for surge alert. NOT wired. |
-| popup-hide-promoted | checkbox | Hide Promoted & Starting Soon cards. NOT wired. |
+| popup-hide-promoted | checkbox | Hide the Promoted badge on load cards. **Wired** → writes `hidePromoted` to storage; `content/filterTags.js` sets `visibility:hidden` on each `[id="PROMOTED"]` element. Card stays fully visible. |
+| popup-hide-starting-soon | checkbox | Hide the Starting soon badge. **Wired** → writes `hideStartingSoon`; `filterTags.js` sets `visibility:hidden` on `[id="STARTING_SOON"]`. |
+| popup-hide-trailer-ready | checkbox | Hide the Trailer ready badge. **Wired** → writes `hideTrailerReady`; `filterTags.js` sets `visibility:hidden` on `[id="TRAILER_READY"]`. |
 | popup-hide-similar | checkbox | Hide Similar Matches block. NOT wired. |
 | popup-reset | button | Reset all settings to defaults. NOT wired. |
 
@@ -41,7 +43,14 @@ Injected below the clicked load card. No data-testid (dynamic, managed by `PANEL
 | Class | Type | Function |
 |-------|------|----------|
 | ext-inline-panel | div | Outer wrapper. `id="ext-inline-panel"`. |
-| ext-seg-header | div | Collapsible segment header (multi-segment loads only). Toggles `ext-open` on self + paired body. |
+| ext-seg-header | div | Collapsible segment header (multi-segment loads only). `display:grid` with 6 fixed columns: `40px minmax(0,3fr) 1.4fr 1fr 1fr 32px` — number / route / dist·time / action / status / arrow. Always 6 child spans. Toggles `ext-open` on self + paired body. |
+| (ext-route-origin) | span | Origin code inside `.ext-seg-route` (left sub-column, 150px fixed). Monospace stack, 11px. |
+| (ext-route-right) | span | Right sub-column wrapper inside `.ext-seg-route` (arrow + destination). `1fr` width. |
+| (ext-route-arrow) | span | Route connector `→` inside `.ext-route-right`. Bold, 1.15em, `#1a5c38` accent. |
+| (ext-route-dest) | span | Destination code inside `.ext-route-right`. Monospace stack, 11px. |
+| (ext-seg-loaded) | class on `.ext-seg-status` | "Loaded" — plain text, `#1a5c38` green, font-weight 500. No pill. |
+| (ext-seg-empty) | class on `.ext-seg-status` | "Empty" — plain text, muted `#878787`. No pill. |
+| (ext-seg-action) | span | Action text (Drop/Live/Preloaded) — plain text, muted `#565959`. No pill. |
 | ext-seg-body | div | Segment table container. `display:none` until `ext-open`. |
 | ext-inline-panel__table | table | Stop rows. `table-layout:fixed`, columns 40/20/20/20%. |
 | ext-stop-num | span | Blue circle with stop number (if available). |

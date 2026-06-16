@@ -15,6 +15,7 @@
       "utils/storage.js",
       "content/nightMode.js",
       "content/filterSimilar.js",
+      "content/filterTags.js",
       "content/refreshManager.js",
       "content/loadParser.js",
       "content/loadDetector.js",

@@ -95,12 +95,28 @@
 
     <div class="popup-section-title">Load Board Filters</div>
 
-    <div class="popup-row">
-      <label class="popup-label popup-label--wide" for="popup-hide-promoted">Hide Promoted &amp; Starting Soon</label>
-      <label class="toggle-switch">
-        <input type="checkbox" id="popup-hide-promoted" data-testid="popup-hide-promoted">
-        <span class="toggle-track"></span>
-      </label>
+    <div class="popup-tag-block">
+      <div class="popup-tag-filter">
+        <label class="popup-tag-label" for="popup-hide-promoted">Promoted</label>
+        <label class="toggle-switch toggle-switch--sm">
+          <input type="checkbox" id="popup-hide-promoted" data-testid="popup-hide-promoted">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="popup-tag-filter">
+        <label class="popup-tag-label" for="popup-hide-starting-soon">Starting soon</label>
+        <label class="toggle-switch toggle-switch--sm">
+          <input type="checkbox" id="popup-hide-starting-soon" data-testid="popup-hide-starting-soon">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="popup-tag-filter">
+        <label class="popup-tag-label" for="popup-hide-trailer-ready">Trailer ready</label>
+        <label class="toggle-switch toggle-switch--sm">
+          <input type="checkbox" id="popup-hide-trailer-ready" data-testid="popup-hide-trailer-ready">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
     </div>
 
     <div class="popup-row">

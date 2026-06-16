@@ -24,11 +24,8 @@ Toggle (`popup-surge`) + threshold (`popup-surge-threshold`, $ number, default $
 - Storage keys to add: `STORAGE_KEYS.SURGE_ENABLED`, `STORAGE_KEYS.SURGE_THRESHOLD`, `STORAGE_KEYS.PRICE_HISTORY`.
 - New highlight class for surge cards (distinct from the new-load blue).
 
-### Hide Promoted & Starting Soon (UI-BUILT)
-Toggle (`popup-hide-promoted`). On enable: find load cards tagged as "Promoted" or "Starting soon" (Amazon tag elements: `#STARTING_SOON`, `.wo-tag`) and set `card.style.display = 'none'`. Re-show on disable.
-- Hidden cards must be excluded from new-load detection so they are never auto-clicked. `loadDetector.js` should skip cards that are `display:none`.
-- Storage key to add: `STORAGE_KEYS.HIDE_PROMOTED = 'hidePromoted'` (boolean)
-- NO click on these cards — hide via style only.
+### Hide tag filters ✅ DONE
+Three compact toggles side-by-side in popup (`.popup-tag-block`): Promoted / Starting soon / Trailer ready. Each hides the matching tag **badge only** via `visibility:hidden` on the `[id="PROMOTED"]` / `[id="STARTING_SOON"]` / `[id="TRAILER_READY"]` element — the load card stays fully visible and participates in new-load detection normally. `content/filterTags.js` `recomputeTagHiding()` queries each id directly. Storage keys: `hidePromoted`, `hideStartingSoon`, `hideTrailerReady` (all boolean, default false). `MutationObserver` active only while ≥1 toggle is on.
 
 ### Hide Similar Matches (UI-BUILT)
 Toggle (`popup-hide-similar`). On enable: find the second `div.load-list` (the "Similar matches" block) and hide its parent container via `display:none`. The parser already ignores it (first `div.load-list` only), so this is purely visual decluttering.
