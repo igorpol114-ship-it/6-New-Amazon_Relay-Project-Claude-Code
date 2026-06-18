@@ -32,6 +32,15 @@ Button (`popup-reset`). Clears all extension-managed keys from `chrome.storage.l
 
 ---
 
+## Instant detection via MutationObserver ✅ DONE (2026-06-18)
+
+`content/loadObserver.js` — `MutationObserver` on `div.load-list` with debounce (200ms).
+Runs the full detection pipeline instantly when Amazon's DOM changes (new loads pushed,
+filter params changed). Supplements timer tick; self-trigger prevention via
+`isExtManagedNode()`. Wired through `tabState 'running'` subscriber.
+
+---
+
 ## Step 3 — Memory-leak / caching audit (PLANNED, do alongside popup wiring)
 
 Tab RAM grows over long sessions. Audit targets:

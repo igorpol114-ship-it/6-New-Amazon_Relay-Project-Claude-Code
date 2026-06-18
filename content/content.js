@@ -113,6 +113,7 @@ async function orchestratorTick() {
     // Amazon's React SPA leaks detached DOM nodes on every refresh; the only reset is a reload.
     if (result.newCount === 0 && surgeLoads.length === 0 && shouldReloadForMemory()) {
       logger.log('content', 'memory pressure — flagging for reload and reloading page');
+      stopLoadObserver(); // disconnect before reload so no stale callbacks fire
       sessionStorage.setItem('ext_resume_after_memory_reload', '1');
       location.reload();
     }
@@ -158,9 +159,11 @@ function stopOrchestrator() {
 // Fires synchronously when sidebar toggles or orchestrator auto-stops.
 tabState.subscribe('running', function (val) {
   if (val) {
-    closePanelsForStart(); // close filter + detail panels once per loop start
-    startOrchestrator();
+    closePanelsForStart(); // close detail panel once per loop start
+    startLoadObserver();   // instant detection via MutationObserver
+    startOrchestrator();   // timer-tick fallback
   } else {
+    stopLoadObserver();
     stopOrchestrator();
   }
 });

@@ -3,6 +3,12 @@
 Every UI element MUST have a unique data-testid.
 When reporting a bug, use the testid name.
 
+## Load observer (content/loadObserver.js — 2026-06-18)
+
+No new extension UI elements. `loadObserver.js` is a background behavioral module — it adds a `MutationObserver` on `div.load-list` and triggers the existing detection pipeline when Amazon's DOM changes. No visible elements are injected; all highlighting/badge rendering stays in their original modules.
+
+---
+
 ## Panel closer (content/panelCloser.js — 2026-06-18)
 
 No new extension UI elements. This feature clicks Amazon's own close control — it is Amazon's element, not ours, so it has no `data-testid` from the extension. Behavior: when the loop starts, the load-detail sheet is closed via its own close button if it is currently open. The left filter panel is intentionally left alone. Controlled by `closePanelsForStart()`, called once per loop start from the `tabState 'running'` subscriber in `content.js`.

@@ -69,6 +69,37 @@ Submit: find button by text "Submit" (DO NOT CLICK — user does)
 The load card itself (div.load-card) — clicking opens details panel.
 NOT the payout, NOT the chevron, NOT any button.
 
+## MutationObserver anchor ✅
+Used by: content/loadObserver.js → startLoadObserver()
+
+Anchor: `document.body`
+Reason: `div.load-list` is VOLATILE — when the user changes a filter, Amazon (React SPA)
+unmounts the entire div.load-list and mounts a fresh one. An observer bound to the old node
+goes permanently deaf once that node is detached. document.body is the only unconditionally
+stable anchor that survives any React re-render.
+
+Observed config: `{ childList: true, subtree: true }`
+- subtree:true required to catch replacements deep in the component tree.
+- No attributes:true — highlighter class additions (.ext-new-load) are attribute mutations
+  and do NOT fire this observer.
+
+Mutation filter (hasLoadCardChange()):
+  Only debounces when at least one of these is true in a batch:
+  1. mutation.target.classList.contains('load-list') — cards changed inside existing list
+  2. An added node.classList.contains('load-card' | 'load-card__selected')
+  3. An added/removed node.classList.contains('load-list') — container replaced
+  4. An added node.querySelector('div.load-card, div.load-list') — parent wrapper replaced
+
+Self-trigger guard (isExtManagedNode()):
+  Returns true for: non-element nodes, id='ext-inline-panel', id/data-testid starting with 'ext-'.
+  These are skipped before the filter above runs.
+
+DIAG logs: every callback invocation logs "DIAG callback: fired" with batch size, target,
+and first added/removed class. hasLoadCardChange logs why it returned true. These help confirm
+which case Amazon actually hits. Will be removed in a follow-up once confirmed working.
+
+⚠️ Re-verify if Amazon changes the overall page structure (not just the load list).
+
 ## Detail panel (load-detail sheet) close ✅
 Authorized: 2026-06-18 — see docs/SAFETY.md Click 3.
 Panel open-check: `document.querySelector('#selected-work-sheet')` is non-null.

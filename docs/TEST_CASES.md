@@ -90,3 +90,39 @@ Two relay.amazon.com tabs open simultaneously. All cases verified with both tabs
 2. Click the same card again to close the inline panel (toggle-off path).
 3. **Expected:** panel closes. Loop remains stopped (no redundant start/stop cycle).
 4. No errors in console.
+
+---
+
+## MutationObserver instant detection (2026-06-18)
+
+### TC-OBS-1 — Radius (or any) filter change highlights new loads instantly
+1. Set timer tick to 6s. Start loop (running = true).
+2. Change the radius filter (or any filter param) in the filter panel.
+3. **Expected:** new loads highlighted (`.ext-new-load`) within ~200ms — WITHOUT waiting for the 6s tick. Sound alert and tab flash fire if new loads found.
+4. **Console confirms:** `DIAG hasLoadCardChange: load-list node added (container replaced)` OR `load-card added` — this tells us which case Amazon hits.
+
+### TC-OBS-2 — Auto-open and auto-stop fire on observer-driven pass
+1. Start loop with Auto-Open enabled.
+2. Change filter so a new load appears.
+3. **Expected:** top new load card opens (detail sheet + inline panel) AND loop stops (pill shows paused) — same behaviour as timer tick with new loads. Loop was stopped by `tabState.set('running', false)` in `runObserverPipeline`.
+
+### TC-OBS-3 — No infinite observer loop from ext DOM mutations
+1. Start loop. Let it find a new load and render the inline panel (highlight + badge + panel insertion).
+2. **Expected:** no second pipeline pass fires as a result of the inline panel insertion or highlight class addition. Console shows "ext-managed change only — ignored" for the panel insert mutation.
+3. Confirm: no duplicate sound, no double auto-open, no console error loop.
+
+### TC-OBS-4 — Observer stops on pause; restarts on resume
+1. Start loop, confirm observer is active (logs "observer active on first div.load-list").
+2. Pause loop (click pause pill).
+3. Change a filter. **Expected:** no pipeline pass fires (observer disconnected or running-gated).
+4. Resume loop. **Expected:** observer reconnects; filter change again triggers detection.
+
+### TC-OBS-5 — Observer stops on memory reload
+1. Simulate memory reload: `sessionStorage.setItem('ext_resume_after_memory_reload','1'); location.reload()`.
+2. **Expected after reload:** extension auto-resumes (observer + timer both start). No stale observer from before reload fires callbacks.
+
+### TC-OBS-6 — Back-to-back observer + timer tick: no duplicate alert
+1. Start loop with timer interval = 2s.
+2. At t=0, a filter change triggers the observer; observer runs at t=200ms (debounce). Finds 0 new loads.
+3. At t=2000ms, timer tick runs. Also finds 0 new loads.
+4. **Expected:** only ONE detection pass' worth of behaviour — no duplicate sound, no double highlight. `detectNewLoads` idempotency confirmed.
