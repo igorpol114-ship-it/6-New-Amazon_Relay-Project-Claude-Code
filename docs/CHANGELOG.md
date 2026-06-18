@@ -2,6 +2,47 @@
 
 ## [Unreleased]
 
+### 2026-06-18 — Fix global stop numbers in inline panel stop-detail table
+
+**Root cause:** `parseStopBlock()` always returned `num: ''` (hardcoded empty string). `buildSegmentTable()` gates the `.ext-stop-num` circle span on `if (stop.num)` — since `num` was never assigned, no stop-number circles appeared in the expanded stop table.
+
+**Fix:** added a post-processing loop in `readSheetData()` (after all segments are built, before the route calculation and return). For segment index `N` (0-based), stop at position `k` within the segment receives global number `N+1+k`. This produces the correct shared-stop numbering:
+- Segment 0: stops [1, 2]
+- Segment 1: stops [2, 3]  ← 2 is shared
+- Segment 2: stops [3, 4]  ← 3 is shared
+
+No rendering changes — `buildSegmentTable()` already rendered circles when `stop.num` was truthy.
+
+- **`content/inlinePanel.js`**: added global-stop-number assignment loop in `readSheetData()`.
+
+---
+
+### 2026-06-18 — Remove temporary DIAG logs from loadObserver.js
+
+- **`content/loadObserver.js`**: removed all temporary DIAG logs added during debugging:
+  the DOM-snapshot block in `startLoadObserver()`, the per-callback mutation detail log
+  (`DIAG callback: fired` with batchSize / target / added / removed class dump), the
+  `var m0` binding that existed only to feed those logs. Replaced DIAG-prefixed callback
+  status logs with standard operational logs (`mutation: ext-managed change only — ignored`,
+  `mutation: not running — ignored`, `mutation: external change — debouncing`).
+  All CLAUDE.md-required logs retained: `logger.log()` at each function entry,
+  `logger.error()` in catches, standard pipeline result logs.
+  File header updated to remove "DIAG logs remain" note.
+
+---
+
+### 2026-06-18 — Fix MutationObserver (attempt 3): broad hasExternalChange filter + _pipelineRunning guard
+
+**Root cause of attempt 2 failure:** `hasLoadCardChange()` matched mutations by specific class names (`'load-card'`, `'load-list'`). Amazon wraps the load-list in React container nodes whose roots have dynamic/hashed class names (`css-xyz`). Those wrapper nodes ARE added to the DOM when the filter changes — but they don't carry `load-card` or `load-list` classes. All four cases in `hasLoadCardChange()` missed them. The observer WAS firing; the filter killed the debounce before it started.
+
+**Fix:** replaced `hasLoadCardChange()` with `hasExternalChange()` — fires for ANY childList mutation that doesn't involve ext-managed nodes, regardless of class names. Amazon's non-load updates are mostly `characterData` or `attribute` mutations which `childList` doesn't observe; the rare non-load `childList` mutation triggers a pipeline pass that calls `detectNewLoads()`, finds `newCount=0`, and exits silently.
+
+Added `_pipelineRunning` boolean guard: prevents two concurrent observer pipeline runs (e.g., Amazon's sheet DOM mutations trigger the observer while the first pipeline is still inside `await sleep(800)`). `orchTickRunning` guard unchanged.
+
+- **`content/loadObserver.js`**: `hasLoadCardChange()` removed; `hasExternalChange()` added (broad, class-name-agnostic). `_pipelineRunning` flag added to `runObserverPipeline()` with `try/finally` reset. DIAG logs unchanged — every callback still logs target/class/running state.
+
+---
+
 ### 2026-06-18 — Fix MutationObserver: anchor on document.body to survive container replacement
 
 **Root cause diagnosed:** the observer was bound to `div.load-list` with `subtree:false`. Amazon is a React SPA — changing a filter unmounts the entire `div.load-list` and mounts a fresh one. The old node is detached; an observer on a detached node never fires. The observer went deaf the moment the container was replaced.

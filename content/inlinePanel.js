@@ -275,6 +275,22 @@ function readSheetData() {
       });
     });
 
+    // Assign global stop numbers.
+    // A multi-stop route is one continuous sequence: stop 1, 2, 3, … N+1.
+    // Adjacent segments share a boundary stop: segment N covers global stops (N+1) and (N+2).
+    // Stop at position k within segment N → global number N+1+k.
+    // Example (3 segments / 4 stops):
+    //   seg 0: stops[0].num="1"  stops[1].num="2"
+    //   seg 1: stops[0].num="2"  stops[1].num="3"   ← 2 shared with seg 0 end
+    //   seg 2: stops[0].num="3"  stops[1].num="4"   ← 3 shared with seg 1 end
+    for (var n = 0; n < segments.length; n++) {
+      var segStops = segments[n].stops;
+      var baseNum  = n + 1;
+      for (var sn = 0; sn < segStops.length; sn++) {
+        segStops[sn].num = String(baseNum + sn);
+      }
+    }
+
     // Route = first segment from-name → last segment to-name
     var route = '';
     if (segments.length > 0) {

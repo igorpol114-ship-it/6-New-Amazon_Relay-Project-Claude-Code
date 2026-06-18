@@ -23,9 +23,9 @@
 - **`content/detailOpener.js`** — `openTopNewLoad()` — єдиний дозволений клік #2 (neutral zone картки); `scrollIntoView` + `setTimeout(250)` для карток поза viewport
 - **`content/inlinePanel.js`** — `showInlinePanel()`, `initManualToggle()` — розкладна таблиця зупинок нижче натиснутої картки; полінг `waitForSheet`; сегментований акордеон
 - **`content/sidebar.js`** — `buildSidebar()` — фіксована панель зверху; play/pause pill; повзунок швидкості; анімація scanline (CSS-only). **Синхронізація через tabState pub/sub** (не onChanged). `chrome.storage.onChanged` для RUNNING/SPEED видалено. ~~`sidebar-surge-threshold`~~ видалено 2026-06-18 (tabState.surgeThreshold залишається, UI прибрано).
-- **`content/loadObserver.js`** ✅ NEW (2026-06-18, fixed 2026-06-18) — MutationObserver. **Anchor: `document.body`** (not `div.load-list` — that node is volatile; Amazon unmounts+remounts it on filter change). Config: `{ childList:true, subtree:true }`. `hasLoadCardChange()` filter: only debounces when load cards or load-list container appear/disappear (4 cases). `isExtManagedNode()` guards surge badges + inline panel. DIAG logs active until confirmed. Debounce 200ms. `runObserverPipeline()`: same pipeline as tick. `startLoadObserver()` / `stopLoadObserver()` from tabState 'running' subscriber and memory-watchdog path.
+- **`content/loadObserver.js`** ✅ NEW (2026-06-18, fixed ×3, DIAG logs removed) — MutationObserver. **Anchor: `document.body`** `{ childList:true, subtree:true }`. `hasExternalChange()` filter: fires debounce for ANY non-ext childList mutation (class-name-agnostic). `isExtManagedNode()` guards surge badges + inline panel. `_pipelineRunning` flag prevents concurrent pipeline runs. Debounce 200ms. Same detect→highlight→sound→tabAlert→auto-open→auto-stop pipeline as tick. Standard logs only.
 - **`content/panelCloser.js`** ✅ (2026-06-18) — `closePanelsForStart()`: закриває тільки detail sheet (`#selected-work-sheet`) при старті петлі. Лівий filter panel навмисно не чіпається (залишається відкритим якщо вже відкрито). `findDetailCloseButton()` + `isForbiddenElement()` перед кліком. Усі спроби закрити filter panel видалені 2026-06-18.
-- **`content/inlinePanel.js`** — `initManualToggle()`: при ручному кліку на картку (`waitForSheet` callback) — тепер викликає `tabState.set('running', false)` (FIX 2, 2026-06-18) перед `showInlinePanel`. Зупиняє петлю тільки в цьому таб. Не торкається extension auto-open шляху.
+- **`content/inlinePanel.js`** — `initManualToggle()`: при ручному кліку на картку (`waitForSheet` callback) — тепер викликає `tabState.set('running', false)` (FIX 2, 2026-06-18) перед `showInlinePanel`. Зупиняє петлю тільки в цьому таб. Не торкається extension auto-open шляху. **Global stop numbers ✅ (2026-06-18):** `readSheetData()` тепер призначає глобальні номери зупинок кожному `stop.num` після побудови всіх сегментів: сегмент N → зупинки [N+1, N+2]. `buildSegmentTable()` вже рендерив `.ext-stop-num` кружок коли `stop.num` не порожній — раніше поле завжди було `''`.
 - **`content/content.js`** — оркестратор: підсвітка → звук → Tab Alert → авто-відкриття деталей → показ панелі → автостоп через `tabState.set('running', false)`. Memory watchdog ✅. **Per-tab state ✅ (2026-06-18)**: `tabState.subscribe('running', fn)` замість onChanged; `scheduleNextTick()` — синхронна, читає tabState; init wrapped в async IIFE `await tabState.init()` перед buildSidebar. `closePanelsForStart()` викликається в subscriber при val=true.
 
 ### Step 3 — підключені контролі попапу
@@ -42,7 +42,7 @@
 ---
 
 ## Що в роботі
-Нічого активного. MutationObserver instant detection завершено 2026-06-18.
+Нічого активного. Global stop numbers в inline panel завершено 2026-06-18.
 
 ---
 

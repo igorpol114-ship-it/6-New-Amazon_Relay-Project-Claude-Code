@@ -83,12 +83,13 @@ Observed config: `{ childList: true, subtree: true }`
 - No attributes:true — highlighter class additions (.ext-new-load) are attribute mutations
   and do NOT fire this observer.
 
-Mutation filter (hasLoadCardChange()):
-  Only debounces when at least one of these is true in a batch:
-  1. mutation.target.classList.contains('load-list') — cards changed inside existing list
-  2. An added node.classList.contains('load-card' | 'load-card__selected')
-  3. An added/removed node.classList.contains('load-list') — container replaced
-  4. An added node.querySelector('div.load-card, div.load-list') — parent wrapper replaced
+Mutation filter (hasExternalChange()):
+  Fires the debounce for ANY childList mutation involving a non-ext-managed node.
+  No class-name matching — Amazon wraps the load-list in React containers whose root
+  nodes have dynamic/hashed classes; class-name filtering caused false negatives.
+  "Was it actually a new load?" is answered by detectNewLoads() after the debounce, not
+  in the observer callback. Non-load Amazon mutations (if childList) trigger a pipeline
+  pass that finds newCount=0 and exits silently.
 
 Self-trigger guard (isExtManagedNode()):
   Returns true for: non-element nodes, id='ext-inline-panel', id/data-testid starting with 'ext-'.

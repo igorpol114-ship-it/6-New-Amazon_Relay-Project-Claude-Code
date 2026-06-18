@@ -99,7 +99,7 @@ Two relay.amazon.com tabs open simultaneously. All cases verified with both tabs
 1. Set timer tick to 6s. Start loop (running = true).
 2. Change the radius filter (or any filter param) in the filter panel.
 3. **Expected:** new loads highlighted (`.ext-new-load`) within ~200ms — WITHOUT waiting for the 6s tick. Sound alert and tab flash fire if new loads found.
-4. **Console confirms:** `DIAG hasLoadCardChange: load-list node added (container replaced)` OR `load-card added` — this tells us which case Amazon hits.
+4. **Console confirms (attempt 3):** `DIAG callback: fired` entries appear during filter change, then `DIAG callback: external change while running — debouncing`, then `runObserverPipeline called` within 200ms — WITHOUT waiting for the next tick.
 
 ### TC-OBS-2 — Auto-open and auto-stop fire on observer-driven pass
 1. Start loop with Auto-Open enabled.
@@ -120,6 +120,27 @@ Two relay.amazon.com tabs open simultaneously. All cases verified with both tabs
 ### TC-OBS-5 — Observer stops on memory reload
 1. Simulate memory reload: `sessionStorage.setItem('ext_resume_after_memory_reload','1'); location.reload()`.
 2. **Expected after reload:** extension auto-resumes (observer + timer both start). No stale observer from before reload fires callbacks.
+
+---
+
+## Inline panel stop numbers (2026-06-18)
+
+### TC-STOP-1 — Global stop numbers appear in stop-detail table
+1. Start loop. Let auto-open fire on a multi-segment load (≥ 2 legs).
+2. Expand one segment's stop-detail accordion.
+3. **Expected:** each address row has a blue `.ext-stop-num` circle showing the global stop number.
+   - Segment 0 rows: circles "1" and "2".
+   - Segment 1 rows: circles "2" and "3" (2 is shared with segment 0's destination).
+   - Segment 2 rows: circles "3" and "4" (3 is shared with segment 1's destination).
+4. **Regression check (single-segment load):** circles "1" and "2" appear.
+
+### TC-STOP-2 — Shared stop has identical number in both segments
+1. Open a 3-segment load's inline panel.
+2. Expand segment 0 and note the destination stop number (e.g., "XBN6 → 2").
+3. Expand segment 1 and note the origin stop number.
+4. **Expected:** both show the same number ("2"). Stop numbering is continuous, not per-segment restarted.
+
+---
 
 ### TC-OBS-6 — Back-to-back observer + timer tick: no duplicate alert
 1. Start loop with timer interval = 2s.
