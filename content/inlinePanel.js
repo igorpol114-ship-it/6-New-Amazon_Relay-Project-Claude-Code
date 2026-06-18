@@ -44,7 +44,7 @@ function injectPanelStyle() {
     '.ext-seg-status{text-align:center;font-size:11px;}' +
     '.ext-seg-loaded{color:#1a5c38;font-weight:500;}' +
     '.ext-seg-empty{color:#878787;}' +
-    '.ext-seg-header .ext-seg-title{font-weight:bold;color:#232f3e;text-align:center;padding:0 4px;}' +
+    '.ext-seg-header .ext-seg-title{display:flex;align-items:center;justify-content:center;padding:0;}' +
     '.ext-seg-header .ext-seg-arrow{transition:transform .15s;text-align:center;padding:0 4px;}' +
     '.ext-seg-header.ext-open .ext-seg-arrow{transform:rotate(180deg);}' +
     '.ext-seg-body{display:none;}' +
@@ -66,6 +66,7 @@ function injectPanelStyle() {
       'background:#185FA5;color:#fff;font-size:11px;' +
       'align-items:center;justify-content:center;margin-right:8px;' +
     '}' +
+    '.ext-seg-title .ext-stop-num{margin-right:0;}' +
     '.ext-stop-addr{color:#565959;font-size:12px;}' +
     '.ext-dot-loaded{' +
       'display:inline-block;width:11px;height:11px;border-radius:50%;' +
@@ -391,7 +392,11 @@ function buildPanelElement(data) {
 
       var titleSpan = document.createElement('span');
       titleSpan.className = 'ext-seg-title';
-      titleSpan.textContent = String(i + 1);
+      var originNum   = segment.stops.length > 0 ? segment.stops[0].num : String(i + 1);
+      var originNumEl = document.createElement('span');
+      originNumEl.className  = 'ext-stop-num';
+      originNumEl.textContent = originNum;
+      titleSpan.appendChild(originNumEl);
 
       // Route column — origin, bold accent arrow, destination as separate nodes.
       // Never uses innerHTML; each part set via textContent.
@@ -412,7 +417,15 @@ function buildPanelElement(data) {
 
       var destEl = document.createElement('span');
       destEl.className  = 'ext-route-dest';
-      destEl.textContent = destText;
+      // Show destination global stop# as a circle matching the header circles.
+      var destNum   = segment.stops.length > 1
+        ? segment.stops[segment.stops.length - 1].num
+        : String(i + 2);
+      var destNumEl = document.createElement('span');
+      destNumEl.className  = 'ext-stop-num';
+      destNumEl.textContent = destNum;
+      destEl.appendChild(destNumEl);
+      destEl.appendChild(document.createTextNode(destText));
 
       fromToSpan.appendChild(originEl);
       fromToSpan.appendChild(routeArrowEl);

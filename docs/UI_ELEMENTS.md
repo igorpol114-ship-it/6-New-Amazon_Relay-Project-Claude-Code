@@ -61,13 +61,13 @@ Injected below the clicked load card. No data-testid (dynamic, managed by `PANEL
 | ext-seg-header | div | Collapsible segment header (multi-segment loads only). `display:grid` with 6 fixed columns: `40px minmax(0,3fr) 1.4fr 1fr 1fr 32px` — number / route / dist·time / action / status / arrow. Always 6 child spans. Toggles `ext-open` on self + paired body. |
 | (ext-route-origin) | span | Origin code, column 1 (`1fr`) of `.ext-seg-route` 3-column grid. Monospace, centered, wraps within its half. `min-width:0`. |
 | (ext-route-arrow) | span | Route connector `→`, column 2 (`auto`) — glyph width only, always centered. Bold, 1.15em, `#1a5c38`. |
-| (ext-route-dest) | span | Destination code, column 3 (`1fr`). Monospace, centered, wraps within its half. `min-width:0`. |
+| (ext-route-dest) | span | Destination code, column 3 (`1fr`). Monospace, centered, wraps within its half. `min-width:0`. Contains an `.ext-stop-num` circle (destination global stop#) prepended before the code text. |
 | (ext-seg-loaded) | class on `.ext-seg-status` | "Loaded" — plain text, `#1a5c38` green, font-weight 500. No pill. |
 | (ext-seg-empty) | class on `.ext-seg-status` | "Empty" — plain text, muted `#878787`. No pill. |
 | (ext-seg-action) | span | Action text (Drop/Live/Preloaded) — plain text, muted `#565959`. No pill. |
 | ext-seg-body | div | Segment table container. `display:none` until `ext-open`. |
 | ext-inline-panel__table | table | Stop rows. `table-layout:fixed`, columns 40/20/20/20%. |
-| ext-stop-num | span | Blue circle with stop number (if available). |
+| ext-stop-num | span | Blue circle with stop number. `display:inline-flex`, 18×18 px, `#185FA5` background, white text, `border-radius:50%`, 11px. Used in three places: (1) stop-detail table rows; (2) inside `.ext-route-dest` in segment header rows (destination global stop#); (3) inside `.ext-seg-title` in segment header rows (origin global stop#, `margin-right:0` override applied). |
 | ext-stop-addr | div | Grey address line under stop name. |
 | ext-dot-loaded | span | Solid black dot = loaded trailer. |
 | ext-dot-empty | span | Outlined dot = empty trailer. |

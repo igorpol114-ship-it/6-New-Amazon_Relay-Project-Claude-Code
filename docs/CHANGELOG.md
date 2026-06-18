@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+### 2026-06-18 — Style left-side stop numbers in segment header rows as blue circles
+
+**Root cause:** `titleSpan` (`.ext-seg-title`, leftmost 40 px column) rendered its origin stop# as plain bold black text. The destination stop# (added in the previous step as a `.ext-stop-num` circle inside `destEl`) was already styled correctly. The two sides were visually mismatched.
+
+**Fix:** three changes, all in `inlinePanel.js`:
+1. **CSS `.ext-seg-header .ext-seg-title`** — replaced the plain-text rules (`font-weight:bold;color:#232f3e;text-align:center;padding:0 4px`) with `display:flex;align-items:center;justify-content:center;padding:0`. The span now acts as a flex centering wrapper for the circle inside it.
+2. **CSS `.ext-seg-title .ext-stop-num`** — new one-rule override: `margin-right:0`. Cancels the `margin-right:8px` that `.ext-stop-num` normally uses when it precedes text (nothing follows the circle here).
+3. **JS `buildPanelElement()`** — replaced `titleSpan.textContent = originNum` with a child `.ext-stop-num` span: same element type, same class, same construction pattern as the destination circle.
+
+Result: both the origin (left column) and destination (inside route cell) now show identical dark-blue circles with white digits. No new CSS values introduced — all values (`#185FA5`, `18px`, `border-radius:50%`, `#fff`, `11px`) come directly from the existing `.ext-stop-num` rule.
+
+- **`content/inlinePanel.js`**: CSS block + `buildPanelElement()`.
+
+---
+
+### 2026-06-18 — Fix global stop numbers in segment header rows
+
+**Root cause:** `titleSpan` in the segment row header used `String(i + 1)` (a loop counter semantically tied to segment position, not global stop order). It happened to equal the origin stop# by coincidence but was not derived from the route data. More importantly, the destination stop had NO number shown in the header row at all — only the code name.
+
+**Fix:** two changes in `buildPanelElement()` (multi-segment branch):
+1. `titleSpan.textContent`: now derived from `segment.stops[0].num` (the origin global stop# assigned by `readSheetData()`'s post-processing loop). Falls back to `String(i + 1)` if segment has no parsed stops.
+2. `destEl`: instead of `destEl.textContent = destText`, an `.ext-stop-num` circle (same style as the stop-detail table circles) is appended first, containing `segment.stops[last].num`, followed by the destination code text node. Falls back to `String(i + 2)`.
+
+Result for a 3-stop load (2 segments):
+- Row 0: `[1]` title | KILN → `[2]` DCM5
+- Row 1: `[2]` title | DCM5 → `[3]` CMH1 (shared stop DCM5 = global 2 in both rows)
+
+- **`content/inlinePanel.js`**: `buildPanelElement()` — `titleSpan` derivation + `destEl` circle.
+
+---
+
 ### 2026-06-18 — Fix global stop numbers in inline panel stop-detail table
 
 **Root cause:** `parseStopBlock()` always returned `num: ''` (hardcoded empty string). `buildSegmentTable()` gates the `.ext-stop-num` circle span on `if (stop.num)` — since `num` was never assigned, no stop-number circles appeared in the expanded stop table.
