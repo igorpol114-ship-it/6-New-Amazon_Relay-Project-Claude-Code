@@ -17,15 +17,11 @@ CSS-class-toggle approach: `html.ext-night` class toggled by `content/nightMode.
 ### Sound block ✅ DONE
 Volume slider (`popup-volume`) wired, persists as `soundVolume` (0–100, default 70). Sound selector (`popup-sound-select`) wired, persists as `soundId` (default `'default'`). 25 distinct sounds in `content/soundAlert.js` SOUND_DEFS dispatch table. Preview plays on dropdown change and replay button click. `SOUND_MUTED` fully removed. Both volume and soundId survive popup close/reopen.
 
-### Price Surge Alert (UI-BUILT)
-Toggle (`popup-surge`) + threshold (`popup-surge-threshold`, $ number, default $50). When enabled: after each refresh diff, compare each load's current payout to the last known payout for that loadId. If the difference >= threshold, play alert + visually highlight that card differently.
-- Requires: a per-loadId price-history store in `chrome.storage.local` (e.g. `priceHistory: { [loadId]: lastPayout }`).
-- **CRITICAL:** price-history store must delete entries for loadIds no longer visible — otherwise RAM and storage grow unboundedly (ties into memory-leak audit below).
-- Storage keys to add: `STORAGE_KEYS.SURGE_ENABLED`, `STORAGE_KEYS.SURGE_THRESHOLD`, `STORAGE_KEYS.PRICE_HISTORY`.
-- New highlight class for surge cards (distinct from the new-load blue).
+### Price Surge Alert ✅ DONE
+`content/priceSurge.js` — `checkPriceSurge(loads)` called every tick. Builds `newHistory` from scratch per tick (auto-purges gone loads). Triggers on payout increase >= threshold; applies `.ext-surge-price` green tint + `↑ +$NN` badge; calls `playAlert()`. Popup controls: `popup-surge` → global `surgeEnabled`; `popup-surge-threshold` → global default for new tabs. **Per-tab isolation ✅ (2026-06-18):** threshold and priceHistory moved to `tabState` (sessionStorage-backed). Only `SURGE_ENABLED` remains in chrome.storage.local. Sidebar `sidebar-surge-threshold` field overrides per-tab.
 
 ### Hide tag filters ✅ DONE
-Three compact toggles side-by-side in popup (`.popup-tag-block`): Promoted / Starting soon / Trailer ready. Each hides the matching tag **badge only** via `visibility:hidden` on the `[id="PROMOTED"]` / `[id="STARTING_SOON"]` / `[id="TRAILER_READY"]` element — the load card stays fully visible and participates in new-load detection normally. `content/filterTags.js` `recomputeTagHiding()` queries each id directly. Storage keys: `hidePromoted`, `hideStartingSoon`, `hideTrailerReady` (all boolean, default false). `MutationObserver` active only while ≥1 toggle is on.
+Four compact toggles side-by-side in popup (`.popup-tag-block`): Promoted / Starting soon / Trailer ready / Booked before. Each hides the matching tag **badge only** via `display:none` on the respective `[id="..."]` element — space collapses (no leftover gap). If ALL known tag children of a `.wo-tag` wrapper are hidden, the wrapper itself is also set to `display:none`. Load card stays fully visible and participates in new-load detection. `MutationObserver` active only while ≥1 toggle is on. Storage keys: `hidePromoted`, `hideStartingSoon`, `hideTrailerReady`, `hidePastBook` (all boolean, default false).
 
 ### Hide Similar Matches (UI-BUILT)
 Toggle (`popup-hide-similar`). On enable: find the second `div.load-list` (the "Similar matches" block) and hide its parent container via `display:none`. The parser already ignores it (first `div.load-list` only), so this is purely visual decluttering.
@@ -41,10 +37,10 @@ Button (`popup-reset`). Clears all extension-managed keys from `chrome.storage.l
 Tab RAM grows over long sessions. Audit targets:
 
 1. **`_element` DOM references in `knownLoadIds`** — `loadDetector.js` stores load objects keyed by `loadId`. If those objects include `_element` (the live DOM node), every refresh that rotates the load list leaks detached nodes and blocks GC. Fix: store only scalar fields (`loadId`, `payout`) in the diff snapshot; never keep `_element` across ticks.
-2. **Price-history store** — see Price Surge section above; must purge stale loadIds each tick.
+2. **Price-history store** ✅ RESOLVED — `checkPriceSurge` rebuilds `newHistory` from scratch each tick; entries for gone loads are never written, so storage stays bounded.
 3. **Style/favicon injection idempotency** — all injected `<style>` tags are already guarded by `id` check. Favicon swap must also be idempotent.
 4. **Scanline** — CSS-only animation, no JS loop. Confirmed safe.
-5. **`chrome.storage.onChanged` listeners** — each is registered once inside `buildSidebar()` / `initManualToggle()` which are each guarded against double-execution. Confirm no re-registration on SPA navigation.
+5. **`chrome.storage.onChanged` listeners** — ✅ RUNNING and SPEED removed from onChanged (now tabState pub/sub). Remaining listeners: nightMode, tabAlert, hideSimilar, tag filters, sound (all global). Confirm no re-registration on SPA navigation.
 
 ---
 

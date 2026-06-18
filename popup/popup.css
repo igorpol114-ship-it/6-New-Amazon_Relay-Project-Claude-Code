@@ -257,10 +257,10 @@ input[type="range"] {
   margin: 2px 0 12px;
 }
 
-/* Tag-filter row: three compact toggles side by side */
+/* Tag-filter row: four compact toggles side by side */
 .popup-tag-block {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 12px;
 }
 

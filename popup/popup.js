@@ -1,18 +1,21 @@
 // Popup — Step 3 wiring.
 // WIRED: Night Mode, Tab Alert, Hide Similar Matches, Sound (volume + sound select + preview),
-//        Hide Promoted, Hide Starting Soon, Hide Trailer Ready.
-// NOT WIRED YET: Price Surge, Reset.
+//        Hide Promoted, Hide Starting Soon, Hide Trailer Ready, Price Surge.
+// NOT WIRED YET: Reset.
 // Popup runs in its own isolated context: never clicks page elements, never
 // parses loads, never triggers refresh. State shared via chrome.storage.local.
 
-var KEY_NIGHT_MODE        = 'nightMode';          // STORAGE_KEYS.NIGHT_MODE
-var KEY_TAB_ALERT         = 'tabAlert';           // STORAGE_KEYS.TAB_ALERT
-var KEY_HIDE_SIMILAR      = 'hideSimilarMatches'; // STORAGE_KEYS.HIDE_SIMILAR
-var KEY_VOLUME            = 'soundVolume';        // STORAGE_KEYS.VOLUME   (0–100, default 70)
-var KEY_SOUND_ID          = 'soundId';            // STORAGE_KEYS.SOUND_ID (string, default 'default')
-var KEY_HIDE_PROMOTED     = 'hidePromoted';       // STORAGE_KEYS.HIDE_PROMOTED
-var KEY_HIDE_STARTING_SOON = 'hideStartingSoon';  // STORAGE_KEYS.HIDE_STARTING_SOON
-var KEY_HIDE_TRAILER_READY = 'hideTrailerReady';  // STORAGE_KEYS.HIDE_TRAILER_READY
+var KEY_NIGHT_MODE         = 'nightMode';          // STORAGE_KEYS.NIGHT_MODE
+var KEY_TAB_ALERT          = 'tabAlert';           // STORAGE_KEYS.TAB_ALERT
+var KEY_HIDE_SIMILAR       = 'hideSimilarMatches'; // STORAGE_KEYS.HIDE_SIMILAR
+var KEY_VOLUME             = 'soundVolume';        // STORAGE_KEYS.VOLUME   (0–100, default 70)
+var KEY_SOUND_ID           = 'soundId';            // STORAGE_KEYS.SOUND_ID (string, default 'default')
+var KEY_HIDE_PROMOTED      = 'hidePromoted';       // STORAGE_KEYS.HIDE_PROMOTED
+var KEY_HIDE_STARTING_SOON = 'hideStartingSoon';   // STORAGE_KEYS.HIDE_STARTING_SOON
+var KEY_HIDE_TRAILER_READY = 'hideTrailerReady';   // STORAGE_KEYS.HIDE_TRAILER_READY
+var KEY_HIDE_PAST_BOOK     = 'hidePastBook';       // STORAGE_KEYS.HIDE_PAST_BOOK  (boolean, default false)
+var KEY_SURGE_ENABLED      = 'surgeEnabled';       // STORAGE_KEYS.SURGE_ENABLED  (boolean, default false)
+var KEY_SURGE_THRESHOLD    = 'surgeThreshold';     // STORAGE_KEYS.SURGE_THRESHOLD (number, default 50)
 
 // ── Sound preview (popup context — mirrors soundAlert.js getSoundTones exactly) ──
 
@@ -207,13 +210,17 @@ document.addEventListener('DOMContentLoaded', function () {
   var promotedToggle     = document.getElementById('popup-hide-promoted');
   var startingSoonToggle = document.getElementById('popup-hide-starting-soon');
   var trailerReadyToggle = document.getElementById('popup-hide-trailer-ready');
+  var pastBookToggle     = document.getElementById('popup-hide-past-book');
+  var surgeToggle        = document.getElementById('popup-surge');
+  var surgeThreshold     = document.getElementById('popup-surge-threshold');
 
   // ── Read all settings from storage and initialise the UI ──────────────────
   chrome.storage.local.get(
     [
       KEY_NIGHT_MODE, KEY_TAB_ALERT, KEY_HIDE_SIMILAR,
       KEY_VOLUME, KEY_SOUND_ID,
-      KEY_HIDE_PROMOTED, KEY_HIDE_STARTING_SOON, KEY_HIDE_TRAILER_READY
+      KEY_HIDE_PROMOTED, KEY_HIDE_STARTING_SOON, KEY_HIDE_TRAILER_READY, KEY_HIDE_PAST_BOOK,
+      KEY_SURGE_ENABLED, KEY_SURGE_THRESHOLD
     ],
     function (data) {
       if (nightToggle)        nightToggle.checked        = data[KEY_NIGHT_MODE] === true;
@@ -224,6 +231,13 @@ document.addEventListener('DOMContentLoaded', function () {
       if (promotedToggle)     promotedToggle.checked     = data[KEY_HIDE_PROMOTED] === true;
       if (startingSoonToggle) startingSoonToggle.checked = data[KEY_HIDE_STARTING_SOON] === true;
       if (trailerReadyToggle) trailerReadyToggle.checked = data[KEY_HIDE_TRAILER_READY] === true;
+      if (pastBookToggle)     pastBookToggle.checked     = data[KEY_HIDE_PAST_BOOK]     === true;
+      if (surgeToggle)        surgeToggle.checked        = data[KEY_SURGE_ENABLED]      === true;
+      if (surgeThreshold) {
+        var storedThreshold = data[KEY_SURGE_THRESHOLD];
+        surgeThreshold.value = (storedThreshold !== undefined) ? storedThreshold : 50;
+        console.log('[popup] surgeThreshold loaded:', surgeThreshold.value);
+      }
     }
   );
 
@@ -291,6 +305,30 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  if (pastBookToggle) {
+    pastBookToggle.addEventListener('change', function () {
+      chrome.storage.local.set({ [KEY_HIDE_PAST_BOOK]: pastBookToggle.checked });
+    });
+  }
+
+  if (surgeToggle) {
+    surgeToggle.addEventListener('change', function () {
+      console.log('[popup] surgeEnabled saved:', surgeToggle.checked);
+      chrome.storage.local.set({ [KEY_SURGE_ENABLED]: surgeToggle.checked });
+    });
+  }
+
+  if (surgeThreshold) {
+    function saveSurgeThreshold() {
+      var n = Number(surgeThreshold.value);
+      if (isNaN(n) || n <= 0) return;
+      console.log('[popup] surgeThreshold saved:', n);
+      chrome.storage.local.set({ [KEY_SURGE_THRESHOLD]: n });
+    }
+    surgeThreshold.addEventListener('input',  saveSurgeThreshold);
+    surgeThreshold.addEventListener('change', saveSurgeThreshold);
+  }
+
   // ── Live sync: storage → UI (handles changes from other extension pages) ──
   chrome.storage.onChanged.addListener(function (changes, area) {
     if (area !== 'local') return;
@@ -302,5 +340,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (changes[KEY_HIDE_PROMOTED]      !== undefined && promotedToggle)     promotedToggle.checked     = changes[KEY_HIDE_PROMOTED].newValue === true;
     if (changes[KEY_HIDE_STARTING_SOON] !== undefined && startingSoonToggle) startingSoonToggle.checked = changes[KEY_HIDE_STARTING_SOON].newValue === true;
     if (changes[KEY_HIDE_TRAILER_READY] !== undefined && trailerReadyToggle) trailerReadyToggle.checked = changes[KEY_HIDE_TRAILER_READY].newValue === true;
+    if (changes[KEY_HIDE_PAST_BOOK]     !== undefined && pastBookToggle)     pastBookToggle.checked     = changes[KEY_HIDE_PAST_BOOK].newValue     === true;
+    if (changes[KEY_SURGE_ENABLED]      !== undefined && surgeToggle)        surgeToggle.checked        = changes[KEY_SURGE_ENABLED].newValue      === true;
+    if (changes[KEY_SURGE_THRESHOLD]    !== undefined && surgeThreshold)     surgeThreshold.value       = changes[KEY_SURGE_THRESHOLD].newValue;
   });
 });

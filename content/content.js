@@ -1,19 +1,39 @@
 logger.log('content', 'extension loaded', { version: EXT_VERSION });
 
-buildSidebar();
-initManualToggle();
-
 // --- Orchestrator ---
 
-var orchTimer      = null;  // setTimeout handle; null means loop is not scheduled
+var orchTimer       = null;  // setTimeout handle; null means loop is not scheduled
 var orchTickRunning = false; // overlap guard — prevents concurrent ticks
 
 var REFRESH_SETTLE_MS = 1200; // ms to wait after refresh before parsing
+
+// Memory watchdog thresholds — reload only when heap is both large enough and near the limit.
+var MEMORY_RELOAD_RATIO     = 0.7;
+var MEMORY_RELOAD_MIN_BYTES = 500 * 1024 * 1024; // 500 MB
 
 function sleep(ms) {
   return new Promise(function (resolve) {
     setTimeout(resolve, ms);
   });
+}
+
+function shouldReloadForMemory() {
+  logger.log('content', 'shouldReloadForMemory called');
+  try {
+    if (!performance.memory) return false;
+    var used  = performance.memory.usedJSHeapSize;
+    var limit = performance.memory.jsHeapSizeLimit;
+    var ratio = used / limit;
+    logger.log('content', 'shouldReloadForMemory: heap stats', {
+      usedMB:  Math.round(used  / 1024 / 1024),
+      limitMB: Math.round(limit / 1024 / 1024),
+      ratio:   ratio.toFixed(3)
+    });
+    return used >= MEMORY_RELOAD_MIN_BYTES && ratio >= MEMORY_RELOAD_RATIO;
+  } catch (e) {
+    logger.error('content', 'shouldReloadForMemory failed', { error: e });
+    return false;
+  }
 }
 
 async function orchestratorTick() {
@@ -34,6 +54,8 @@ async function orchestratorTick() {
       allCount: result.allCount,
       newCount: result.newCount
     });
+
+    var surgeLoads = await checkPriceSurge(loads);
 
     if (result.newCount > 0) {
       highlightNewLoads(result.newLoads);
@@ -56,12 +78,45 @@ async function orchestratorTick() {
         }
       }
 
-      await storage.set(STORAGE_KEYS.RUNNING, false);
-      stopOrchestrator();
+      // tabState subscriber fires stopOrchestrator() synchronously
+      tabState.set('running', false);
       logger.log('content', 'new loads found — auto-stopping loop for dispatcher review', {
         newCount: result.newCount
       });
+    } else if (surgeLoads.length > 0) {
+      // Surge hit with no new loads — auto-stop and open top surge card.
+      // Uses the existing neutral-zone click (openTopNewLoad) — no new .click() sites.
+      var surgeAutoOpen = await storage.get(STORAGE_KEYS.AUTO_OPEN, true);
+      var surgeOpened   = false;
+      if (surgeAutoOpen) {
+        surgeOpened = openTopNewLoad(surgeLoads);
+      }
+
+      if (surgeAutoOpen && surgeOpened) {
+        await sleep(800);
+        try {
+          showInlinePanel(surgeLoads[0]._element);
+          logger.log('content', 'inline panel shown for surge load');
+        } catch (e) {
+          logger.warn('content', 'inline panel render failed for surge load', { error: e });
+        }
+      }
+
+      // tabState subscriber fires stopOrchestrator() synchronously
+      tabState.set('running', false);
+      logger.log('content', 'surge detected — auto-stopping loop for dispatcher review', {
+        surgeCount: surgeLoads.length
+      });
     }
+
+    // Memory watchdog — only fires when idle (no new loads, no surge, loop still running).
+    // Amazon's React SPA leaks detached DOM nodes on every refresh; the only reset is a reload.
+    if (result.newCount === 0 && surgeLoads.length === 0 && shouldReloadForMemory()) {
+      logger.log('content', 'memory pressure — flagging for reload and reloading page');
+      sessionStorage.setItem('ext_resume_after_memory_reload', '1');
+      location.reload();
+    }
+
   } catch (e) {
     logger.error('content', 'orchestratorTick: unexpected error', { error: e });
   } finally {
@@ -69,17 +124,17 @@ async function orchestratorTick() {
   }
 }
 
-async function scheduleNextTick() {
-  var running = await storage.get(STORAGE_KEYS.RUNNING, false);
+function scheduleNextTick() {
+  var running = tabState.get('running');
   if (!running) {
     logger.log('content', 'scheduleNextTick: loop halted');
     return;
   }
-  var speedSec = await storage.get(STORAGE_KEYS.SPEED, 2);
+  var intervalMs = tabState.get('refreshIntervalMs');
   orchTimer = setTimeout(async function () {
     await orchestratorTick();
     scheduleNextTick();
-  }, speedSec * 1000);
+  }, intervalMs);
 }
 
 async function startOrchestrator() {
@@ -99,18 +154,32 @@ function stopOrchestrator() {
   logger.log('content', 'stopOrchestrator: loop stopped');
 }
 
-// React to Start/Stop toggle from sidebar or popup
-chrome.storage.onChanged.addListener(function (changes, area) {
-  if (area !== 'local') return;
-  if (!changes[STORAGE_KEYS.RUNNING]) return;
-  var newValue = changes[STORAGE_KEYS.RUNNING].newValue;
-  if (newValue) {
+// tabState subscriber replaces chrome.storage.onChanged for RUNNING.
+// Fires synchronously when sidebar toggles or orchestrator auto-stops.
+tabState.subscribe('running', function (val) {
+  if (val) {
+    closePanelsForStart(); // close filter + detail panels once per loop start
     startOrchestrator();
   } else {
     stopOrchestrator();
   }
 });
 
-// On page load: always require manual Start — never auto-resume from storage
-storage.set(STORAGE_KEYS.RUNNING, false);
-logger.log('content', 'page load — forcing RUNNING=false, waiting for manual Start');
+// Async init: await tabState.init() so sidebar reads correct seeded values synchronously.
+(async function () {
+  await tabState.init();
+
+  buildSidebar();
+  initManualToggle();
+
+  // Memory-reload resume OR normal manual-start path.
+  var _memResumeFlag = sessionStorage.getItem('ext_resume_after_memory_reload');
+  if (_memResumeFlag === '1') {
+    sessionStorage.removeItem('ext_resume_after_memory_reload');
+    logger.log('content', 'page load — memory-reload resume detected, auto-starting loop');
+    tabState.set('running', true); // subscriber → startOrchestrator()
+  } else {
+    logger.log('content', 'page load — waiting for manual Start');
+    // tabState.running defaults to false — no action needed
+  }
+})();

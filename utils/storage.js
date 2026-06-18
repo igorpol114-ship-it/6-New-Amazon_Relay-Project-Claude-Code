@@ -9,7 +9,11 @@ const STORAGE_KEYS = {
   SOUND_ID:           'soundId',
   HIDE_PROMOTED:      'hidePromoted',
   HIDE_STARTING_SOON: 'hideStartingSoon',
-  HIDE_TRAILER_READY: 'hideTrailerReady'
+  HIDE_TRAILER_READY: 'hideTrailerReady',
+  HIDE_PAST_BOOK:     'hidePastBook',
+  SURGE_ENABLED:      'surgeEnabled',
+  SURGE_THRESHOLD:    'surgeThreshold',
+  PRICE_HISTORY:      'priceHistory'
 };
 
 const storage = {

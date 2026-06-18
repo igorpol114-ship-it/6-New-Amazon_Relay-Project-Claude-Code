@@ -5,7 +5,7 @@
 This extension interacts with a live commercial booking system. The following rules are non-negotiable and apply to every feature in the backlog:
 
 - **The extension NEVER books a load.** Booking is always finalized by a human dispatcher.
-- **Only two `.click()` call sites exist in the entire codebase.**
+- **Only three `.click()` call sites exist in the entire codebase.**
 - **`isForbiddenElement()` is called before every `.click()`.**
 - None of the planned features (Night Mode, Tab Alert, Sound, Price Surge, Hide filters, Card Action Bar) add any new click site or touch booking.
 
@@ -25,7 +25,7 @@ This extension interacts with a live commercial booking system. The following ru
 
 ---
 
-## Allowed click sites — exactly two
+## Allowed click sites — exactly three
 
 ### Click 1 — Refresh button (refreshManager.js → refreshNow())
 Three gates must ALL pass:
@@ -50,6 +50,21 @@ Gates on the resolved `target` (elementFromPoint result, run inside setTimeout):
 
 Intent logged as `ALLOWED_CLICK_INTENTS.NEUTRAL_ZONE`.
 
+### Click 3 — Load detail panel close (panelCloser.js → closePanelsForStart())
+**Rationale:** Same as Click 3. Closing the load-detail sheet cannot trigger booking.
+The detail sheet is `#selected-work-sheet`; its close button contains no booking controls.
+
+**Safety:** `isForbiddenElement()` verifies the close button is not a booking element
+before every click.
+
+Gates:
+1. `document.querySelector('#selected-work-sheet')` is non-null (panel is open)
+2. `findDetailCloseButton()` returns non-null (close button found within sheet)
+3. `isForbiddenElement(btn)` === false  **(MANDATORY)**
+
+Intent logged as `ALLOWED_CLICK_INTENTS.CLOSE_DETAIL_PANEL`.
+Selector strategy: see AMAZON_SELECTORS.md → Detail panel close.
+
 ---
 
 ## Scope
@@ -59,7 +74,7 @@ Intent logged as `ALLOWED_CLICK_INTENTS.NEUTRAL_ZONE`.
 ---
 
 ## Audit checklist (Stage 17)
-- [ ] `grep "\.click()"` → only `refreshNow()` in `refreshManager.js` + `openTopNewLoad()` in `detailOpener.js`
+- [ ] `grep "\.click()"` → exactly three sites: `refreshNow()` (refreshManager.js), `openTopNewLoad()` (detailOpener.js), detail close (panelCloser.js)
 - [ ] `grep "rlb-book"` → only in `FORBIDDEN_SELECTORS` in `constants.js`
 - [ ] `isForbiddenElement()` called before every `.click()`
 - [ ] No new `.click()` sites introduced by popup wiring (Step 3) or any backlog feature

@@ -13,6 +13,7 @@
       "utils/constants.js",
       "utils/logger.js",
       "utils/storage.js",
+      "utils/tabState.js",
       "content/nightMode.js",
       "content/filterSimilar.js",
       "content/filterTags.js",
@@ -21,10 +22,12 @@
       "content/loadDetector.js",
       "content/highlighter.js",
       "content/soundAlert.js",
+      "content/priceSurge.js",
       "content/detailOpener.js",
       "content/inlinePanel.js",
       "content/tabAlert.js",
       "content/sidebar.js",
+      "content/panelCloser.js",
       "content/content.js"
     ],
     "run_at": "document_idle"

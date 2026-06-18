@@ -29,14 +29,16 @@ function injectPanelStyle() {
       'font-size:12px;color:#565959;cursor:pointer;user-select:none;' +
     '}' +
     '.ext-seg-header > span{padding:0 8px;}' +
-    '.ext-seg-route{min-width:0;display:grid;grid-template-columns:150px 1fr;align-items:start;}' +
+    '.ext-seg-route{min-width:0;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}' +
     '.ext-route-origin{' +
       'font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;' +
-      'overflow-wrap:break-word;word-break:break-word;min-width:0;' +
+      'overflow-wrap:break-word;word-break:break-word;min-width:0;text-align:center;' +
     '}' +
-    '.ext-route-right{min-width:0;overflow-wrap:break-word;word-break:break-word;}' +
-    '.ext-route-dest{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;}' +
-    '.ext-route-arrow{font-size:1.15em;font-weight:700;color:#1a5c38;margin:0 0.45em;}' +
+    '.ext-route-dest{' +
+      'font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;' +
+      'overflow-wrap:break-word;word-break:break-word;min-width:0;text-align:center;' +
+    '}' +
+    '.ext-route-arrow{font-size:1.15em;font-weight:700;color:#1a5c38;margin:0 0.35em;}' +
     '.ext-seg-dist{color:#878787;font-size:11px;text-align:center;}' +
     '.ext-seg-action{text-align:center;font-size:11px;color:#565959;}' +
     '.ext-seg-status{text-align:center;font-size:11px;}' +
@@ -396,13 +398,9 @@ function buildPanelElement(data) {
       destEl.className  = 'ext-route-dest';
       destEl.textContent = destText;
 
-      var routeRightEl = document.createElement('span');
-      routeRightEl.className = 'ext-route-right';
-      routeRightEl.appendChild(routeArrowEl);
-      routeRightEl.appendChild(destEl);
-
       fromToSpan.appendChild(originEl);
-      fromToSpan.appendChild(routeRightEl);
+      fromToSpan.appendChild(routeArrowEl);
+      fromToSpan.appendChild(destEl);
 
       // Distance · duration — muted secondary
       var milesSpan = document.createElement('span');
@@ -504,8 +502,15 @@ function initManualToggle() {
       return;
     }
 
-    // Toggle on: wait for Amazon's native sheet to render segments, then show our panel
+    // Toggle on: wait for Amazon's native sheet to render segments, then show our panel.
+    // Also stop auto-refresh so the dispatcher can review the card without interruption.
     waitForSheet(function () {
+      try {
+        tabState.set('running', false);
+        logger.log('inlinePanel', 'manual card open — stopping loop for dispatcher review');
+      } catch (e) {
+        logger.error('inlinePanel', 'tabState stop failed on manual card open', { error: e });
+      }
       try {
         var ok = showInlinePanel(card);
         if (ok) { currentPanelCard = card; }

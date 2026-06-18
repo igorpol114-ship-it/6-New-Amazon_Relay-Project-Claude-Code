@@ -24,7 +24,7 @@
 1. NEVER use jQuery
 2. NEVER use inline event handlers
 3. NEVER remove FORBIDDEN_SELECTORS
-4. NEVER add .click() except Refresh button and neutral zone
+4. NEVER add .click() except these three explicitly named sites: Refresh button (refreshManager.js), neutral zone (detailOpener.js), detail-panel close (panelCloser.js)
 5. NEVER create clickAutomation.js, autoBooking.js, or similar
 6. NEVER click Book or Submit — user does those
 7. Every UI element MUST have data-testid
@@ -36,7 +36,7 @@
 1. Code clicking booking elements → STOP, report
 2. Unsure about booking safety → ASK
 3. NEVER modify FORBIDDEN_SELECTORS
-4. Only allowed clicks: Refresh button, neutral zone
+4. Only allowed clicks: Refresh button, neutral zone, detail-panel close
 
 ## Communication
 1. Before work — short plan, wait for approval

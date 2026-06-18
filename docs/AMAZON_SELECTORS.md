@@ -68,3 +68,20 @@ Submit: find button by text "Submit" (DO NOT CLICK — user does)
 ## Neutral zone (Stage 13)
 The load card itself (div.load-card) — clicking opens details panel.
 NOT the payout, NOT the chevron, NOT any button.
+
+## Detail panel (load-detail sheet) close ✅
+Authorized: 2026-06-18 — see docs/SAFETY.md Click 3.
+Panel open-check: `document.querySelector('#selected-work-sheet')` is non-null.
+`#selected-work-sheet` is a stable element ID (not a CSS hash class).
+
+Strategy 1 (primary — aria-label):
+  `sheet.querySelectorAll('button[aria-label]')` → first whose aria-label (lowercase)
+  contains "close".
+
+Strategy 2 (icon-only fallback):
+  `sheet.querySelectorAll('button')` → first with no text content and an `svg` child.
+
+If no strategy resolves: log and skip — no click.
+`isForbiddenElement()` is called on the resolved button before every click.
+Implementation: content/panelCloser.js → findDetailCloseButton()
+⚠️ Re-verify selector if Amazon changes the detail sheet markup.

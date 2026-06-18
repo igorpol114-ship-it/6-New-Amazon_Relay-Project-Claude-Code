@@ -1,4 +1,4 @@
-async function buildSidebar() {
+function buildSidebar() {
   logger.log('sidebar', 'buildSidebar called');
 
   if (document.querySelector('[data-testid="ext-sidebar"]')) {
@@ -80,8 +80,7 @@ async function buildSidebar() {
   title.setAttribute('data-testid', 'ext-sidebar-title');
   title.textContent = EXT_NAME;
 
-  // Play/pause control — replaces old Start/Stop text button.
-  // Click toggles RUNNING. Visual state driven by container[data-running] + CSS.
+  // Play/pause control — Click writes tabState; tabState subscriber drives the visual.
   const playpause = document.createElement('span');
   playpause.setAttribute('data-testid', 'ext-playpause');
   playpause.setAttribute('role', 'button');
@@ -95,7 +94,7 @@ async function buildSidebar() {
       '<rect x="14" y="5" width="4" height="14" rx="1"></rect>' +
     '</svg>';
 
-  // Speed slider — unchanged
+  // Speed slider
   const slider = document.createElement('input');
   slider.setAttribute('type', 'range');
   slider.setAttribute('data-testid', 'ext-slider-speed');
@@ -125,40 +124,43 @@ async function buildSidebar() {
 
   // --- Helpers ---
 
-  // Map refresh speed (0.5s..8s) to scanline animation duration.
-  // Faster refresh -> faster line. Clamped so extremes stay reasonable.
   function applyScanSpeed(speedSec) {
     var s   = parseFloat(speedSec);
     if (isNaN(s)) s = 2;
-    var dur = s * 0.7;            // proportional to refresh interval
-    if (dur < 0.5) dur = 0.5;     // floor — never a blur
-    if (dur > 4)   dur = 4;       // ceiling — never a crawl
+    var dur = s * 0.7;
+    if (dur < 0.5) dur = 0.5;
+    if (dur > 4)   dur = 4;
     container.style.setProperty('--ext-scan-dur', dur.toFixed(2) + 's');
   }
 
-  // Visual + tooltip only. Does NOT write storage. Used by storage sync + init.
+  // Visual + tooltip only. Does NOT write tabState. Called by tabState subscriber.
   function reflectRunning(running) {
     container.setAttribute('data-running', String(running));
-    playpause.setAttribute('title', running ? 'Searching — click to pause' : 'Paused — click to start');
+    playpause.setAttribute('title',      running ? 'Searching — click to pause' : 'Paused — click to start');
     playpause.setAttribute('aria-label', running ? 'Monitoring is running. Click to pause.' : 'Monitoring is paused. Click to start.');
   }
 
-  // User intent — flips state AND writes storage (single source of truth).
+  // User intent — writes tabState (single source of truth for this tab).
+  // The 'running' subscriber fires reflectRunning synchronously; no direct call needed.
   function toggleRunning() {
-    const nowRunning = container.getAttribute('data-running') !== 'true';
-    reflectRunning(nowRunning);
-    storage.set(STORAGE_KEYS.RUNNING, nowRunning);
+    var nowRunning = container.getAttribute('data-running') !== 'true';
+    tabState.set('running', nowRunning);
     logger.log('sidebar', 'playpause toggled', { running: nowRunning });
   }
 
-  // Restore saved state before attaching listeners
-  const savedSpeed = await storage.get(STORAGE_KEYS.SPEED, 2);
-  slider.value = String(savedSpeed);
-  sliderValue.textContent = parseFloat(savedSpeed).toFixed(1) + 's';
-  applyScanSpeed(savedSpeed);
+  // Seed visual state from tabState (synchronous — tabState.init() completed before buildSidebar)
+  var initSpeedSec = tabState.get('refreshIntervalMs') / 1000;
+  slider.value = String(initSpeedSec);
+  sliderValue.textContent = initSpeedSec.toFixed(1) + 's';
+  applyScanSpeed(initSpeedSec);
 
-  const savedRunning = await storage.get(STORAGE_KEYS.RUNNING, false);
-  reflectRunning(savedRunning);
+  reflectRunning(tabState.get('running'));
+
+  // Subscribe: orchestrator auto-stop flips the pill without a storage round-trip
+  tabState.subscribe('running', function (val) {
+    reflectRunning(val);
+    logger.log('sidebar', 'running synced from tabState', { running: val });
+  });
 
   // --- Event listeners ---
   // CLAUDE.md rule 2: addEventListener only, never inline handlers
@@ -177,27 +179,10 @@ async function buildSidebar() {
 
   slider.addEventListener('input', function () {
     logger.log('sidebar', 'slider changed', { value: slider.value });
-    sliderValue.textContent = parseFloat(slider.value).toFixed(1) + 's';
-    applyScanSpeed(slider.value);
-    storage.set(STORAGE_KEYS.SPEED, parseFloat(slider.value));
-  });
-
-  // Keep status + scan speed in sync when storage changes from any source
-  // (orchestrator auto-stop, popup, etc). Read-only — no storage.set here.
-  chrome.storage.onChanged.addListener(function (changes, area) {
-    if (area !== 'local') return;
-    if (changes[STORAGE_KEYS.RUNNING]) {
-      var running = changes[STORAGE_KEYS.RUNNING].newValue;
-      reflectRunning(running);
-      logger.log('sidebar', 'status synced from storage change', { running: running });
-    }
-    if (changes[STORAGE_KEYS.SPEED]) {
-      var newSpeed = changes[STORAGE_KEYS.SPEED].newValue;
-      slider.value = String(newSpeed);
-      sliderValue.textContent = parseFloat(newSpeed).toFixed(1) + 's';
-      applyScanSpeed(newSpeed);
-      logger.log('sidebar', 'speed synced from storage change', { speed: newSpeed });
-    }
+    var sec = parseFloat(slider.value);
+    sliderValue.textContent = sec.toFixed(1) + 's';
+    applyScanSpeed(sec);
+    tabState.set('refreshIntervalMs', sec * 1000);
   });
 
   logger.log('sidebar', 'sidebar injected');

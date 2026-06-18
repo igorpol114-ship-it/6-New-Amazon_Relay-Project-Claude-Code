@@ -10,10 +10,11 @@ function isForbiddenElement(el) {
 }
 
 // Named click intents — every .click() call must declare which intent it is.
-// Only these two are permitted in the entire codebase.
+// Exactly three are permitted in the entire codebase.
 const ALLOWED_CLICK_INTENTS = {
-  REFRESH:      'REFRESH',       // Amazon's internal refresh button — refreshes list, books nothing
-  NEUTRAL_ZONE: 'NEUTRAL_ZONE'   // Load card body — opens details panel, does NOT book
+  REFRESH:            'REFRESH',            // Amazon's internal refresh button — refreshes list, books nothing
+  NEUTRAL_ZONE:       'NEUTRAL_ZONE',       // Load card body — opens details panel, does NOT book
+  CLOSE_DETAIL_PANEL: 'CLOSE_DETAIL_PANEL'  // Load detail sheet close control — dismisses sheet, books nothing
 };
 
 // Project-wide config
