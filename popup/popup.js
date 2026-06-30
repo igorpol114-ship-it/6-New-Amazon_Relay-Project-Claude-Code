@@ -1,9 +1,10 @@
 // Popup — Step 3 wiring.
 // WIRED: Night Mode, Tab Alert, Hide Similar Matches, Sound (volume + sound select + preview),
-//        Hide Promoted, Hide Starting Soon, Hide Trailer Ready, Price Surge.
-// NOT WIRED YET: Reset.
+//        Hide Promoted, Hide Starting Soon, Hide Trailer Ready, Price Surge, Reset.
 // Popup runs in its own isolated context: never clicks page elements, never
 // parses loads, never triggers refresh. State shared via chrome.storage.local.
+// utils/constants.js, utils/logger.js, utils/storage.js loaded before this file
+// (see popup.html) — STORAGE_KEYS and logger are available as globals.
 
 var KEY_NIGHT_MODE         = 'nightMode';          // STORAGE_KEYS.NIGHT_MODE
 var KEY_TAB_ALERT          = 'tabAlert';           // STORAGE_KEYS.TAB_ALERT
@@ -201,6 +202,8 @@ async function previewSound(soundId, volume) {
 // ── DOMContentLoaded ──────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', function () {
+  logger.log('popup', 'DOMContentLoaded');
+
   var nightToggle        = document.getElementById('popup-night-mode');
   var tabToggle          = document.getElementById('popup-tab-alert');
   var similarToggle      = document.getElementById('popup-hide-similar');
@@ -213,6 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var pastBookToggle     = document.getElementById('popup-hide-past-book');
   var surgeToggle        = document.getElementById('popup-surge');
   var surgeThreshold     = document.getElementById('popup-surge-threshold');
+  var resetBtn           = document.getElementById('popup-reset');
 
   // ── Read all settings from storage and initialise the UI ──────────────────
   chrome.storage.local.get(
@@ -329,19 +333,46 @@ document.addEventListener('DOMContentLoaded', function () {
     surgeThreshold.addEventListener('change', saveSurgeThreshold);
   }
 
+  // ── Reset to defaults ─────────────────────────────────────────────────────
+  // Clears every extension-managed key from chrome.storage.local, then resets
+  // the popup UI controls to their documented defaults. No confirm dialog.
+  // tabState (sessionStorage, per-tab) is intentionally NOT touched — it is
+  // session state, separate from persisted settings.
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      logger.log('popup', 'popup-reset clicked');
+      var keys = Object.values(STORAGE_KEYS);
+      chrome.storage.local.remove(keys, function () {
+        logger.log('popup', 'extension storage cleared', { keys: keys });
+        if (nightToggle)        nightToggle.checked        = false;
+        if (tabToggle)          tabToggle.checked          = false;
+        if (similarToggle)      similarToggle.checked      = false;
+        if (volumeSlider)       volumeSlider.value         = 70;
+        if (soundSelect)        soundSelect.value          = 'default';
+        if (promotedToggle)     promotedToggle.checked     = false;
+        if (startingSoonToggle) startingSoonToggle.checked = false;
+        if (trailerReadyToggle) trailerReadyToggle.checked = false;
+        if (pastBookToggle)     pastBookToggle.checked     = false;
+        if (surgeToggle)        surgeToggle.checked        = false;
+        if (surgeThreshold)     surgeThreshold.value       = 50;
+      });
+    });
+  }
+
   // ── Live sync: storage → UI (handles changes from other extension pages) ──
   chrome.storage.onChanged.addListener(function (changes, area) {
     if (area !== 'local') return;
     if (changes[KEY_NIGHT_MODE]         !== undefined && nightToggle)        nightToggle.checked        = changes[KEY_NIGHT_MODE].newValue === true;
     if (changes[KEY_TAB_ALERT]          !== undefined && tabToggle)          tabToggle.checked          = changes[KEY_TAB_ALERT].newValue === true;
     if (changes[KEY_HIDE_SIMILAR]       !== undefined && similarToggle)      similarToggle.checked      = changes[KEY_HIDE_SIMILAR].newValue === true;
-    if (changes[KEY_VOLUME]             !== undefined && volumeSlider)       volumeSlider.value         = changes[KEY_VOLUME].newValue;
-    if (changes[KEY_SOUND_ID]           !== undefined && soundSelect)        soundSelect.value          = changes[KEY_SOUND_ID].newValue;
+    if (changes[KEY_VOLUME]   !== undefined && volumeSlider)  volumeSlider.value = (changes[KEY_VOLUME].newValue   !== undefined) ? changes[KEY_VOLUME].newValue   : 70;
+    if (changes[KEY_SOUND_ID] !== undefined && soundSelect)  soundSelect.value  = (changes[KEY_SOUND_ID].newValue !== undefined) ? changes[KEY_SOUND_ID].newValue : 'default';
     if (changes[KEY_HIDE_PROMOTED]      !== undefined && promotedToggle)     promotedToggle.checked     = changes[KEY_HIDE_PROMOTED].newValue === true;
     if (changes[KEY_HIDE_STARTING_SOON] !== undefined && startingSoonToggle) startingSoonToggle.checked = changes[KEY_HIDE_STARTING_SOON].newValue === true;
     if (changes[KEY_HIDE_TRAILER_READY] !== undefined && trailerReadyToggle) trailerReadyToggle.checked = changes[KEY_HIDE_TRAILER_READY].newValue === true;
     if (changes[KEY_HIDE_PAST_BOOK]     !== undefined && pastBookToggle)     pastBookToggle.checked     = changes[KEY_HIDE_PAST_BOOK].newValue     === true;
     if (changes[KEY_SURGE_ENABLED]      !== undefined && surgeToggle)        surgeToggle.checked        = changes[KEY_SURGE_ENABLED].newValue      === true;
-    if (changes[KEY_SURGE_THRESHOLD]    !== undefined && surgeThreshold)     surgeThreshold.value       = changes[KEY_SURGE_THRESHOLD].newValue;
+    if (changes[KEY_SURGE_THRESHOLD] !== undefined && surgeThreshold) surgeThreshold.value = (changes[KEY_SURGE_THRESHOLD].newValue !== undefined) ? changes[KEY_SURGE_THRESHOLD].newValue : 50;
   });
 });

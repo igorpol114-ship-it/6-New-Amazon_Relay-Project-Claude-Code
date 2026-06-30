@@ -75,7 +75,18 @@ function injectPanelStyle() {
     '.ext-dot-empty{' +
       'display:inline-block;width:11px;height:11px;border-radius:50%;' +
       'border:1.5px solid #000;margin-right:6px;vertical-align:middle;' +
-    '}';
+    '}' +
+    '.ext-action-bar{' +
+      'border-top:1px solid #e7e7e7;padding:5px 10px;' +
+      'display:flex;gap:4px;background:#f8f9f9;' +
+    '}' +
+    '.ext-action-btn{' +
+      'width:28px;height:28px;border:none;background:none;border-radius:4px;' +
+      'cursor:pointer;color:#767676;display:inline-flex;align-items:center;' +
+      'justify-content:center;padding:0;transition:background .15s,color .15s;' +
+    '}' +
+    '.ext-action-btn:hover{background:rgba(0,0,0,.07);color:#232f3e;}' +
+    '.ext-action-btn svg{width:15px;height:15px;display:block;}';
   document.head.appendChild(style);
 }
 
@@ -378,6 +389,146 @@ function buildSegmentTable(segment) {
   return table;
 }
 
+// Swaps the action button icon to a green checkmark for ~1 s, then restores it.
+// Called by captureCardToClipboard on success.
+function flashActionSuccess(btn) {
+  logger.log('inlinePanel', 'flashActionSuccess called');
+  var original      = btn.innerHTML;
+  var originalTitle = btn.getAttribute('title');
+  btn.innerHTML =
+    '<svg viewBox="0 0 16 16" fill="none" stroke="#1a5c38"' +
+    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+    ' aria-hidden="true"><path d="M2 8l4 4 8-8"/></svg>';
+  btn.setAttribute('title', 'Copied!');
+  setTimeout(function () {
+    btn.innerHTML = original;
+    btn.setAttribute('title', originalTitle);
+  }, 1100);
+}
+
+// Captures cardElement to a PNG via html2canvas and writes it to the clipboard.
+// btn is the camera button — used for the success flash.
+// The click on btn is the required user gesture; no extra permission prompt fires
+// when clipboardWrite is granted in manifest.json.
+function captureCardToClipboard(cardElement, btn) {
+  logger.log('inlinePanel', 'captureCardToClipboard called');
+  html2canvas(cardElement, {
+    scale:           window.devicePixelRatio || 1,
+    useCORS:         true,
+    allowTaint:      false,
+    backgroundColor: '#ffffff',
+    logging:         false
+  }).then(function (canvas) {
+    canvas.toBlob(function (blob) {
+      if (!blob) {
+        logger.error('inlinePanel', 'captureCardToClipboard: toBlob returned null');
+        return;
+      }
+      navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]).then(function () {
+        logger.log('inlinePanel', 'captureCardToClipboard: copied to clipboard OK');
+        flashActionSuccess(btn);
+      }).catch(function (e) {
+        logger.error('inlinePanel', 'captureCardToClipboard: clipboard write failed', { error: e });
+      });
+    }, 'image/png');
+  }).catch(function (e) {
+    logger.error('inlinePanel', 'captureCardToClipboard: html2canvas failed', { error: e });
+  });
+}
+
+// Collects unique stops in global order (boundary stops appear in adjacent segments),
+// builds a Google Maps Directions URL, and opens it in a new tab.
+function openRouteInMaps(data) {
+  logger.log('inlinePanel', 'openRouteInMaps called');
+  var allStops = [];
+  var seen = {};
+  data.segments.forEach(function (seg) {
+    seg.stops.forEach(function (stop) {
+      var key = stop.num || (stop.name + '|||' + stop.address);
+      if (!seen[key]) {
+        seen[key] = true;
+        allStops.push(stop);
+      }
+    });
+  });
+  if (allStops.length < 2) {
+    logger.warn('inlinePanel', 'openRouteInMaps: fewer than 2 unique stops', { count: allStops.length });
+    return;
+  }
+  function stopLabel(stop) {
+    var addr = stop.address ? stop.address.trim() : '';
+    return addr ? (stop.name + ' ' + addr) : stop.name;
+  }
+  var origin      = encodeURIComponent(stopLabel(allStops[0]));
+  var destination = encodeURIComponent(stopLabel(allStops[allStops.length - 1]));
+  var url = 'https://www.google.com/maps/dir/?api=1' +
+    '&origin='      + origin +
+    '&destination=' + destination +
+    '&travelmode=driving';
+  if (allStops.length > 2) {
+    var waypoints = allStops.slice(1, -1)
+      .map(function (stop) { return encodeURIComponent(stopLabel(stop)); })
+      .join('|');
+    url += '&waypoints=' + waypoints;
+  }
+  logger.log('inlinePanel', 'openRouteInMaps: opening map', { stops: allStops.length });
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+// Builds the three-button icon row rendered at the bottom of every inline panel.
+// Click handlers for wired buttons are attached by showInlinePanel(), not here.
+function buildActionBar() {
+  logger.log('inlinePanel', 'buildActionBar called');
+
+  var bar = document.createElement('div');
+  bar.className = 'ext-action-bar';
+  bar.setAttribute('data-testid', 'ext-action-bar');
+
+  // Icon definitions: [ testid, aria-label, svg-inner-html ]
+  // SVGs are static markup (no page data), stroke-based 16×16, consistent with
+  // popup.html icon style. innerHTML is safe here — no user/page data involved.
+  var icons = [
+    [
+      'ext-action-camera',
+      'Screenshot',
+      '<path d="M1 6h2.5l1.5-2.5h6L12.5 6H15v8H1z"/>' +
+      '<circle cx="8" cy="10" r="2.2"/>'
+    ],
+    [
+      'ext-action-map',
+      'Route map',
+      '<path d="M8 14s-5-4.2-5-8a5 5 0 0 1 10 0c0 3.8-5 8-5 8z"/>' +
+      '<circle cx="8" cy="6" r="1.6"/>'
+    ],
+    [
+      'ext-action-post',
+      'Create post',
+      '<path d="M3 1.5h6.5L13 5v9.5H3z"/>' +
+      '<path d="M9.5 1.5V5H13"/>' +
+      '<line x1="6.2" y1="9.2" x2="9.8" y2="9.2"/>' +
+      '<line x1="8" y1="7.4" x2="8" y2="11"/>'
+    ]
+  ];
+
+  icons.forEach(function (def) {
+    var btn = document.createElement('button');
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('data-testid', def[0]);
+    btn.setAttribute('aria-label', def[1]);
+    btn.setAttribute('title', def[1]);
+    btn.className = 'ext-action-btn';
+    btn.innerHTML =
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"' +
+      ' stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"' +
+      ' aria-hidden="true">' + def[2] + '</svg>';
+    bar.appendChild(btn);
+  });
+
+  return bar;
+}
+
 function buildPanelElement(data) {
   var panel = document.createElement('div');
   panel.className = 'ext-inline-panel';
@@ -482,6 +633,8 @@ function buildPanelElement(data) {
     }
   });
 
+  panel.appendChild(buildActionBar());
+
   return panel;
 }
 
@@ -501,6 +654,25 @@ function showInlinePanel(cardElement) {
 
   var panel = buildPanelElement(data);
   panel.id  = PANEL_ID;
+
+  // Wire ext-action-camera: click → screenshot this card → copy PNG to clipboard.
+  // Handler attached here because cardElement is only available in showInlinePanel().
+  // This is our own extension UI element, not Amazon DOM — exempt from the 3-click-site rule.
+  var cameraBtn = panel.querySelector('[data-testid="ext-action-camera"]');
+  if (cameraBtn) {
+    cameraBtn.addEventListener('click', function () {
+      logger.log('inlinePanel', 'ext-action-camera clicked');
+      captureCardToClipboard(cardElement, cameraBtn);
+    });
+  }
+
+  var mapBtn = panel.querySelector('[data-testid="ext-action-map"]');
+  if (mapBtn) {
+    mapBtn.addEventListener('click', function () {
+      logger.log('inlinePanel', 'ext-action-map clicked');
+      openRouteInMaps(data);
+    });
+  }
 
   cardElement.parentNode.insertBefore(panel, cardElement.nextSibling);
 

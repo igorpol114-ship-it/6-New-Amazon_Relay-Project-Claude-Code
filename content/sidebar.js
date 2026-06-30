@@ -65,6 +65,34 @@ function buildSidebar() {
     '#ext-sidebar [data-testid="ext-slider-value"]{' +
       'font-size:11px;min-width:28px;opacity:.9;' +
     '}' +
+    '#ext-sidebar [data-testid="ext-memory-indicator"]{' +
+      'width:12px;height:12px;border-radius:50%;cursor:pointer;' +
+      'border:1px solid rgba(255,255,255,.4);flex-shrink:0;' +
+      'transition:background-color .4s;outline:none;' +
+    '}' +
+    '#ext-sidebar [data-testid="ext-memory-indicator"]:focus-visible{' +
+      'box-shadow:0 0 0 2px rgba(255,255,255,.6);' +
+    '}' +
+    '#ext-sidebar [data-testid="ext-memory-info"]{' +
+      'width:14px;height:14px;border-radius:50%;cursor:help;flex-shrink:0;' +
+      'display:inline-flex;align-items:center;justify-content:center;' +
+      'font-size:10px;font-weight:700;line-height:1;' +
+      'background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);' +
+      'outline:none;position:relative;' +
+    '}' +
+    '#ext-sidebar [data-testid="ext-memory-info"]:focus-visible{' +
+      'box-shadow:0 0 0 2px rgba(255,255,255,.6);' +
+    '}' +
+    '#ext-sidebar [data-testid="ext-memory-tooltip"]{' +
+      'display:none;position:absolute;top:32px;right:0;width:220px;' +
+      'background:#1a1a1a;color:#fff;font-size:11px;font-weight:400;' +
+      'line-height:1.4;padding:8px 10px;border-radius:6px;' +
+      'box-shadow:0 2px 10px rgba(0,0,0,.4);white-space:normal;' +
+      'letter-spacing:normal;z-index:2147483647;' +
+    '}' +
+    '#ext-sidebar [data-testid="ext-memory-tooltip"].ext-tooltip-visible{' +
+      'display:block;' +
+    '}' +
     'body{padding-top:44px!important;}';
 
   document.head.appendChild(style);
@@ -108,6 +136,29 @@ function buildSidebar() {
   sliderValue.setAttribute('data-testid', 'ext-slider-value');
   sliderValue.textContent = '2.0s';
 
+  // Memory indicator — dispatcher-controlled reload, no auto-reload (see content.js).
+  const memoryIndicator = document.createElement('span');
+  memoryIndicator.setAttribute('data-testid', 'ext-memory-indicator');
+  memoryIndicator.setAttribute('role', 'button');
+  memoryIndicator.setAttribute('tabindex', '0');
+  memoryIndicator.setAttribute('title', 'Memory usage — click to reload page');
+  memoryIndicator.setAttribute('aria-label', 'Memory usage indicator. Click to reload the page.');
+
+  // Info icon — hover/tap tooltip explaining the indicator
+  const memoryInfo = document.createElement('span');
+  memoryInfo.setAttribute('data-testid', 'ext-memory-info');
+  memoryInfo.setAttribute('tabindex', '0');
+  memoryInfo.setAttribute('aria-label', 'About the memory indicator');
+  memoryInfo.textContent = 'i';
+
+  const memoryTooltip = document.createElement('div');
+  memoryTooltip.setAttribute('data-testid', 'ext-memory-tooltip');
+  memoryTooltip.textContent =
+    'Amazon Relay accumulates data in browser memory with each refresh. ' +
+    'Reloading the page periodically frees that memory. Clicking the dot reloads ' +
+    'the page now. You will need to re-enter your search filters afterward.';
+  memoryInfo.appendChild(memoryTooltip);
+
   // Running scanline along the bottom edge
   const scanline = document.createElement('div');
   scanline.className = 'ext-scanline';
@@ -118,6 +169,8 @@ function buildSidebar() {
   container.appendChild(playpause);
   container.appendChild(slider);
   container.appendChild(sliderValue);
+  container.appendChild(memoryIndicator);
+  container.appendChild(memoryInfo);
   container.appendChild(scanline);
 
   document.body.appendChild(container);
@@ -148,6 +201,67 @@ function buildSidebar() {
     logger.log('sidebar', 'playpause toggled', { running: nowRunning });
   }
 
+  // --- Memory indicator ---
+  // Color stops (tune here): <=40% green, ~62.5% amber (midpoint), >=85% red.
+  // Linear RGB interpolation between stops; polled independently of the orchestrator
+  // loop (every MEMORY_POLL_MS) so it stays live even while monitoring is paused.
+  var MEMORY_INDICATOR_LOW  = 0.40;
+  var MEMORY_INDICATOR_MID  = 0.625;
+  var MEMORY_INDICATOR_HIGH = 0.85;
+  var MEMORY_POLL_MS        = 7000;
+  var MEMORY_COLOR_GREEN = [46, 160, 67];   // #2ea043
+  var MEMORY_COLOR_AMBER = [212, 167, 44];  // #d4a72c
+  var MEMORY_COLOR_RED   = [218, 54, 51];   // #da3633
+  var MEMORY_COLOR_NEUTRAL = 'rgba(255,255,255,.3)'; // performance.memory unavailable
+
+  function lerpColor(c1, c2, t) {
+    var r = Math.round(c1[0] + (c2[0] - c1[0]) * t);
+    var g = Math.round(c1[1] + (c2[1] - c1[1]) * t);
+    var b = Math.round(c1[2] + (c2[2] - c1[2]) * t);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function memoryColorForRatio(ratio) {
+    if (ratio <= MEMORY_INDICATOR_LOW)  return 'rgb(' + MEMORY_COLOR_GREEN.join(',') + ')';
+    if (ratio >= MEMORY_INDICATOR_HIGH) return 'rgb(' + MEMORY_COLOR_RED.join(',') + ')';
+    if (ratio <= MEMORY_INDICATOR_MID) {
+      var t1 = (ratio - MEMORY_INDICATOR_LOW) / (MEMORY_INDICATOR_MID - MEMORY_INDICATOR_LOW);
+      return lerpColor(MEMORY_COLOR_GREEN, MEMORY_COLOR_AMBER, t1);
+    }
+    var t2 = (ratio - MEMORY_INDICATOR_MID) / (MEMORY_INDICATOR_HIGH - MEMORY_INDICATOR_MID);
+    return lerpColor(MEMORY_COLOR_AMBER, MEMORY_COLOR_RED, t2);
+  }
+
+  function updateMemoryIndicator() {
+    logger.log('sidebar', 'updateMemoryIndicator called');
+    var stats = (typeof getHeapUsageRatio === 'function') ? getHeapUsageRatio() : null;
+    if (!stats) {
+      memoryIndicator.style.backgroundColor = MEMORY_COLOR_NEUTRAL;
+      memoryIndicator.setAttribute('title', 'Memory usage unavailable — click to reload page');
+      return;
+    }
+    var pct = Math.round(stats.ratio * 100);
+    memoryIndicator.style.backgroundColor = memoryColorForRatio(stats.ratio);
+    memoryIndicator.setAttribute('title', 'Memory usage: ' + pct + '% — click to reload page');
+    memoryIndicator.setAttribute('aria-label', 'Memory usage ' + pct + ' percent. Click to reload the page.');
+  }
+
+  // Dispatcher-initiated reload only — no automatic trigger exists anywhere in the
+  // extension. This is our own UI element, not Amazon DOM, so SAFETY.md's
+  // three-click-site rule does not govern it (documented there separately).
+  function reloadForMemory() {
+    logger.log('sidebar', 'memory indicator clicked — reloading page');
+    location.reload();
+  }
+
+  function showMemoryTooltip() {
+    memoryTooltip.classList.add('ext-tooltip-visible');
+  }
+
+  function hideMemoryTooltip() {
+    memoryTooltip.classList.remove('ext-tooltip-visible');
+  }
+
   // Seed visual state from tabState (synchronous — tabState.init() completed before buildSidebar)
   var initSpeedSec = tabState.get('refreshIntervalMs') / 1000;
   slider.value = String(initSpeedSec);
@@ -161,6 +275,9 @@ function buildSidebar() {
     reflectRunning(val);
     logger.log('sidebar', 'running synced from tabState', { running: val });
   });
+
+  updateMemoryIndicator();
+  setInterval(updateMemoryIndicator, MEMORY_POLL_MS); // independent of running state
 
   // --- Event listeners ---
   // CLAUDE.md rule 2: addEventListener only, never inline handlers
@@ -183,6 +300,33 @@ function buildSidebar() {
     sliderValue.textContent = sec.toFixed(1) + 's';
     applyScanSpeed(sec);
     tabState.set('refreshIntervalMs', sec * 1000);
+  });
+
+  // Click 4 — extension-owned UI, not Amazon DOM. Manual, dispatcher-initiated reload
+  // only; no automatic trigger exists. See SAFETY.md.
+  memoryIndicator.addEventListener('click', function () {
+    reloadForMemory();
+  });
+
+  memoryIndicator.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+      ev.preventDefault();
+      reloadForMemory();
+    }
+  });
+
+  // Hover (desktop) and tap/focus (touch + keyboard) both reveal the tooltip.
+  memoryInfo.addEventListener('mouseenter', showMemoryTooltip);
+  memoryInfo.addEventListener('mouseleave', hideMemoryTooltip);
+  memoryInfo.addEventListener('focus', showMemoryTooltip);
+  memoryInfo.addEventListener('blur', hideMemoryTooltip);
+  memoryInfo.addEventListener('click', function (ev) {
+    ev.stopPropagation();
+    if (memoryTooltip.classList.contains('ext-tooltip-visible')) {
+      hideMemoryTooltip();
+    } else {
+      showMemoryTooltip();
+    }
   });
 
   logger.log('sidebar', 'sidebar injected');

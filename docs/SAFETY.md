@@ -5,9 +5,11 @@
 This extension interacts with a live commercial booking system. The following rules are non-negotiable and apply to every feature in the backlog:
 
 - **The extension NEVER books a load.** Booking is always finalized by a human dispatcher.
-- **Only three `.click()` call sites exist in the entire codebase.**
-- **`isForbiddenElement()` is called before every `.click()`.**
+- **Only three `.click()` call sites exist on Amazon's own DOM.**
+- **`isForbiddenElement()` is called before every `.click()` on Amazon's DOM.**
 - None of the planned features (Night Mode, Tab Alert, Sound, Price Surge, Hide filters, Card Action Bar) add any new click site or touch booking.
+
+Separately, `content/sidebar.js` has one click site on our own extension-owned UI (`ext-memory-indicator`, a manual dispatcher-triggered `location.reload()`). It is not Amazon DOM, carries no booking risk, and is intentionally **not** part of the "three click sites" list below — see "Allowed click sites" for the rationale.
 
 ---
 
@@ -25,7 +27,10 @@ This extension interacts with a live commercial booking system. The following ru
 
 ---
 
-## Allowed click sites — exactly three
+## Allowed click sites — exactly three (Amazon DOM only)
+
+This rule governs clicks on **Amazon's own page DOM**. It does not apply to clicks on
+elements the extension itself injects (our own chrome) — see "Extension-owned click" below.
 
 ### Click 1 — Refresh button (refreshManager.js → refreshNow())
 Three gates must ALL pass:
@@ -67,6 +72,19 @@ Selector strategy: see AMAZON_SELECTORS.md → Detail panel close.
 
 ---
 
+## Extension-owned click (not subject to the rule above)
+
+### Memory indicator (content/sidebar.js → `ext-memory-indicator`)
+**2026-06-30:** Replaced the automatic memory-watchdog reload (which silently reset
+Amazon's own search filters, not restorable without simulating clicks on Amazon's filter
+controls — out of scope) with a manual indicator. Clicking it calls `location.reload()`
+directly, dispatcher-initiated only — no automatic trigger exists anywhere in the
+extension. Target is `ext-memory-indicator`, an element the extension itself created; it
+is never Amazon DOM, so `isForbiddenElement()` does not apply and this click is **not**
+counted among, or added to, the "three click sites" above.
+
+---
+
 ## Scope
 - **Load Board (Layout A) only.** `div.load-list:first-of-type` → `div.load-card` / `div.load-card__selected` / `div.wo-card-header--highlighted`.
 - Layout B (Contracts / tour-container) is intentionally ignored.
@@ -74,7 +92,7 @@ Selector strategy: see AMAZON_SELECTORS.md → Detail panel close.
 ---
 
 ## Audit checklist (Stage 17)
-- [ ] `grep "\.click()"` → exactly three sites: `refreshNow()` (refreshManager.js), `openTopNewLoad()` (detailOpener.js), detail close (panelCloser.js)
+- [ ] `grep "\.click()"` → exactly three Amazon-DOM sites: `refreshNow()` (refreshManager.js), `openTopNewLoad()` (detailOpener.js), detail close (panelCloser.js) — plus one extension-owned site, `ext-memory-indicator` (sidebar.js), which is a separate category (see "Extension-owned click" above)
 - [ ] `grep "rlb-book"` → only in `FORBIDDEN_SELECTORS` in `constants.js`
 - [ ] `isForbiddenElement()` called before every `.click()`
 - [ ] No new `.click()` sites introduced by popup wiring (Step 3) or any backlog feature

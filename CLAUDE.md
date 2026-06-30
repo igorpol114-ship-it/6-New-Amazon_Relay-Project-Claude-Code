@@ -39,11 +39,11 @@
 4. Only allowed clicks: Refresh button, neutral zone
 
 ## Communication
-1. Before work — short plan, wait for approval
-2. Bug reported → reproduce in logs, then fix
-3. After fix — explain what was wrong
-4. Broke something else → say so immediately
-5. Stop after each stage, wait for approval
+1. For routine changes (wiring a UI control, fixing a documented bug, applying a fully-specified prompt): implement directly, no pre-approval needed. Report what was done after, not before.
+2. Plan first, wait for approval ONLY when: (a) anything touching FORBIDDEN_SELECTORS or adding any new .click() site (Amazon DOM or extension-owned); (b) the prompt itself explicitly says "report plan before coding".
+3. Bug reported → reproduce in logs, then fix
+4. After fix — explain what was wrong
+5. Broke something else → say so immediately
 
 ## Правило завершення задачі
 Після кожної виконаної задачі, перед завершенням сесії:

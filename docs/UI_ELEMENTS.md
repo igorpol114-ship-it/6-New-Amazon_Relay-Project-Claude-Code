@@ -24,6 +24,9 @@ No new extension UI elements. This feature clicks Amazon's own close control —
 | ext-playpause | span[role=button] | Play ↔ pause pill. SVG icons swap via `#ext-sidebar[data-running] .ext-pp__play/pause` CSS. Click / Enter / Space calls `toggleRunning()` → writes `tabState.running` (per-tab, not storage.local). |
 | ext-slider-speed | range | Refresh speed 0.5–8 s, step 0.5, default 2. Writes `tabState.refreshIntervalMs` (per-tab). Also calls `applyScanSpeed()` on input. |
 | ext-slider-value | span | Live display of slider value, e.g. "2.0s". |
+| ext-memory-indicator | span[role=button] | Small dot, `role="button"`, color-interpolated (green→amber→red) from `getHeapUsageRatio()` (content.js), polled every 7s via `setInterval` — independent of the running loop, so it updates while paused. Click or Enter/Space → `location.reload()` directly (dispatcher-initiated only; no automatic trigger). `title`/`aria-label` show live %. Added 2026-06-30, replacing the automatic memory-watchdog reload. |
+| ext-memory-info | span | Small "i" icon next to the indicator. Hover (mouseenter/leave), focus/blur, and click/tap all toggle a custom tooltip child (`ext-memory-tooltip`) — explains the reload, that filters will need re-entry, via `textContent`. Added 2026-06-30. |
+| ext-memory-tooltip | div | Child of `ext-memory-info`. Positioned absolute under the info icon, shown via `.ext-tooltip-visible` class. Text set with `textContent` only. |
 | (ext-scanline) | div.ext-scanline | No testid — purely decorative. CSS-only animation along bottom edge when running. Speed tied to `--ext-scan-dur` CSS var. |
 
 **Removed sidebar elements:** `sidebar-surge-label`, `sidebar-surge-threshold` (removed 2026-06-18 — per-tab threshold still live in tabState/priceSurge, just no longer surfaced in sidebar UI).
@@ -46,8 +49,8 @@ No new extension UI elements. This feature clicks Amazon's own close control —
 | popup-hide-starting-soon | checkbox | Hide the Starting soon badge. **Wired** → writes `hideStartingSoon`; `filterTags.js` sets `display:none` on `[id="STARTING_SOON"]`; collapses wrapper if all children hidden. |
 | popup-hide-trailer-ready | checkbox | Hide the Trailer ready badge. **Wired** → writes `hideTrailerReady`; `filterTags.js` sets `display:none` on `[id="TRAILER_READY"]`. |
 | popup-hide-past-book | checkbox | Hide the "Booked before" badge. **Wired** → writes `hidePastBook`; `filterTags.js` sets `display:none` on `[id="PAST_BOOK"]`. |
-| popup-hide-similar | checkbox | Hide Similar Matches block. NOT wired. |
-| popup-reset | button | Reset all settings to defaults. NOT wired. |
+| popup-hide-similar | checkbox | Hide Similar Matches block. **Wired** → writes `hideSimilarMatches`. |
+| popup-reset | button | Reset all settings to defaults. **Wired** (2026-06-30). Restyled as a muted text link (`color:#aaa`, `font-size:11px`, underlined, no background/border), bottom-left via `.popup-footer` flex wrapper. Click → `chrome.storage.local.remove(Object.values(STORAGE_KEYS))` then resets all popup controls to documented defaults inline. No confirm dialog. `tabState`/sessionStorage untouched. |
 
 **Removed popup elements:** `popup-toggle` (run/stop — now sidebar-only), `popup-slider-speed`, `popup-slider-value`, `popup-load-count`, `popup-last-refresh`.
 
@@ -92,12 +95,18 @@ Single-segment loads: table rendered directly, no accordion wrapper.
 | pat-confirm | button | Confirm → fill form |
 | pat-cancel | button | Cancel |
 
-## Card Action Bar (planned — not yet built)
+## Card Action Bar (content/inlinePanel.js — 2026-06-30)
 
-Three icon-only buttons at the bottom of the expanded inline panel:
+Thin icon row at the very bottom of every expanded inline panel (single and multi-segment).
+Rendered via `buildActionBar()`, appended last inside `buildPanelElement()`. No click
+handlers wired — icons render and hover only at this stage.
 
-| Icon | Function | Notes |
-|------|----------|-------|
-| Route Map | Show map widget with load's stops | Not built |
-| Copy Screenshot | html2canvas → clipboard image | Needs `clipboardWrite` permission; not built |
-| Create Post | Placeholder | No functionality planned yet |
+| testid | Type | Function |
+|--------|------|----------|
+| ext-action-bar | div | Bar container. `border-top`, `background:#f8f9f9`, `display:flex`. Rendered; not yet wired. |
+| ext-action-camera | button.ext-action-btn | Camera icon (screenshot). `aria-label="Screenshot"`. **Wired (2026-06-30)**: click → `captureCardToClipboard()` → html2canvas renders the load card → PNG blob → `navigator.clipboard.write()`. On success: icon flashes green checkmark for 1.1 s via `flashActionSuccess()`. On error: `logger.error()` with context. |
+| ext-action-map | button.ext-action-btn | Map-pin icon (route map). `aria-label="Route map"`. **Wired (2026-06-30)**: click → `openRouteInMaps(data)` → deduplicates stops from `data.segments`, builds Google Maps Directions URL (origin/waypoints/destination from `stop.name + address`), opens in new tab via `window.open(_blank, noopener,noreferrer)`. No flash — new tab is self-evident confirmation. |
+| ext-action-post | button.ext-action-btn | Document+plus icon (create post). `aria-label="Create post"`. Rendered; not yet wired. |
+
+All three buttons share `.ext-action-btn`: 28×28 px, no border/background, `border-radius:4px`,
+hover → subtle grey tint + darker icon. SVGs are static 16×16 stroke-based markup (no page data).

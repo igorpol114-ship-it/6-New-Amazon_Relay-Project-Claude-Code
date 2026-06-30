@@ -7,32 +7,25 @@ var orchTickRunning = false; // overlap guard — prevents concurrent ticks
 
 var REFRESH_SETTLE_MS = 1200; // ms to wait after refresh before parsing
 
-// Memory watchdog thresholds — reload only when heap is both large enough and near the limit.
-var MEMORY_RELOAD_RATIO     = 0.7;
-var MEMORY_RELOAD_MIN_BYTES = 500 * 1024 * 1024; // 500 MB
-
 function sleep(ms) {
   return new Promise(function (resolve) {
     setTimeout(resolve, ms);
   });
 }
 
-function shouldReloadForMemory() {
-  logger.log('content', 'shouldReloadForMemory called');
+// Shared heap reader — used by sidebar.js's memory indicator (polled independently
+// of the orchestrator loop). Returns null where performance.memory is unsupported.
+function getHeapUsageRatio() {
+  logger.log('content', 'getHeapUsageRatio called');
   try {
-    if (!performance.memory) return false;
+    if (!performance.memory) return null;
     var used  = performance.memory.usedJSHeapSize;
     var limit = performance.memory.jsHeapSizeLimit;
     var ratio = used / limit;
-    logger.log('content', 'shouldReloadForMemory: heap stats', {
-      usedMB:  Math.round(used  / 1024 / 1024),
-      limitMB: Math.round(limit / 1024 / 1024),
-      ratio:   ratio.toFixed(3)
-    });
-    return used >= MEMORY_RELOAD_MIN_BYTES && ratio >= MEMORY_RELOAD_RATIO;
+    return { usedBytes: used, limitBytes: limit, ratio: ratio };
   } catch (e) {
-    logger.error('content', 'shouldReloadForMemory failed', { error: e });
-    return false;
+    logger.error('content', 'getHeapUsageRatio failed', { error: e });
+    return null;
   }
 }
 
@@ -109,15 +102,6 @@ async function orchestratorTick() {
       });
     }
 
-    // Memory watchdog — only fires when idle (no new loads, no surge, loop still running).
-    // Amazon's React SPA leaks detached DOM nodes on every refresh; the only reset is a reload.
-    if (result.newCount === 0 && surgeLoads.length === 0 && shouldReloadForMemory()) {
-      logger.log('content', 'memory pressure — flagging for reload and reloading page');
-      stopLoadObserver(); // disconnect before reload so no stale callbacks fire
-      sessionStorage.setItem('ext_resume_after_memory_reload', '1');
-      location.reload();
-    }
-
   } catch (e) {
     logger.error('content', 'orchestratorTick: unexpected error', { error: e });
   } finally {
@@ -175,14 +159,6 @@ tabState.subscribe('running', function (val) {
   buildSidebar();
   initManualToggle();
 
-  // Memory-reload resume OR normal manual-start path.
-  var _memResumeFlag = sessionStorage.getItem('ext_resume_after_memory_reload');
-  if (_memResumeFlag === '1') {
-    sessionStorage.removeItem('ext_resume_after_memory_reload');
-    logger.log('content', 'page load — memory-reload resume detected, auto-starting loop');
-    tabState.set('running', true); // subscriber → startOrchestrator()
-  } else {
-    logger.log('content', 'page load — waiting for manual Start');
-    // tabState.running defaults to false — no action needed
-  }
+  logger.log('content', 'page load — waiting for manual Start');
+  // tabState.running defaults to false — no action needed
 })();

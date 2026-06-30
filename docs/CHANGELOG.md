@@ -2,6 +2,190 @@
 
 ## [Unreleased]
 
+### 2026-06-30 — Wire ext-action-map: open Google Maps directions for load route
+
+**`content/inlinePanel.js`:**
+
+- `openRouteInMaps(data)` — collects unique stops in global order by deduplicating on
+  `stop.num` (boundary stops appear in both adjacent segments with the same num). Builds a
+  Google Maps Directions URL: `origin` = first stop, `destination` = last stop, `waypoints`
+  = all intermediate stops joined by `|` (omitted entirely when only 2 stops). Each stop is
+  encoded as `stop.name + ' ' + stop.address` (address only if non-empty, else name alone)
+  and passed through `encodeURIComponent`. Opens URL via `window.open(url, '_blank',
+  'noopener,noreferrer')`. Logs entry + stop count; `logger.warn` when fewer than 2 unique
+  stops found.
+
+- `showInlinePanel()` — wires `[data-testid="ext-action-map"]` `addEventListener('click')`
+  that calls `openRouteInMaps(data)`. Handler lives here (not in `buildActionBar`) because
+  `data` from `readSheetData()` is only in scope in `showInlinePanel`. Extension-owned
+  click — no new Amazon DOM interactions.
+
+No new manifest permissions. No new dependencies.
+
+---
+
+### 2026-06-30 — Wire ext-action-camera: screenshot load card → copy PNG to clipboard
+
+**New dependency:** `vendor/html2canvas.min.js` v1.4.1 (~194 KB, vendored local copy —
+no CDN, no runtime fetch). Added to `manifest.json` content_scripts js array before all
+`content/` scripts. `"clipboardWrite"` added to `manifest.json` permissions (per
+BACKLOG.md note — this is the point where it was allowed to land).
+
+**`content/inlinePanel.js`:**
+
+- `flashActionSuccess(btn)` — swaps the camera button to a green checkmark SVG for 1.1 s
+  then restores the original innerHTML and title. Pure visual confirmation, no storage.
+
+- `captureCardToClipboard(cardElement, btn)` — calls `html2canvas(cardElement, { scale:
+  devicePixelRatio, useCORS:true, allowTaint:false, backgroundColor:'#ffffff',
+  logging:false })`, converts the resulting canvas to a PNG blob via `canvas.toBlob()`,
+  writes it to the system clipboard via `navigator.clipboard.write([new ClipboardItem(…)])`.
+  On success: calls `flashActionSuccess(btn)`. On any error (toBlob null, clipboard write
+  rejected, html2canvas rejection): `logger.error()` with context — no uncaught throw, no
+  silent no-op.
+
+- `showInlinePanel()` — after `buildPanelElement()` returns, finds `[data-testid=
+  "ext-action-camera"]` within the new panel and wires an `addEventListener('click', …)`
+  that calls `captureCardToClipboard(cardElement, cameraBtn)`. Handler lives here
+  (not in `buildActionBar`) because `cardElement` is only in scope in `showInlinePanel`.
+  Extension-owned click, not Amazon DOM — exempt from the 3-click-site rule; documented
+  in-code comment.
+
+The capture targets the `cardElement` (div.load-card / div.load-card__selected) only —
+the inline panel is a sibling, not a child, so it is never included in the screenshot.
+The click on the button is the required user gesture for clipboard write.
+
+---
+
+### 2026-06-30 — Card Action Bar: icon row rendered in inline panel (no functionality yet)
+
+Added a thin icon bar at the bottom of every expanded inline panel (single and
+multi-segment). Render-only — no click handlers. Three buttons:
+
+- `ext-action-camera` — camera icon (screenshot placeholder)
+- `ext-action-map` — map-pin icon (route map placeholder)
+- `ext-action-post` — document+plus icon (create post placeholder)
+
+**`content/inlinePanel.js`:**
+- CSS: `.ext-action-bar` (flex row, `border-top`, light grey background) and
+  `.ext-action-btn` (28×28, no border, hover tint) added to `injectPanelStyle()`.
+- `buildActionBar()` — new function (logger.log at entry); builds the bar and three
+  `<button>` elements with inline stroke SVG icons (16×16, static markup, no page data;
+  `innerHTML` used only for the static SVG string). Each button has `data-testid`,
+  `aria-label`, `title`.
+- `buildPanelElement()` — `panel.appendChild(buildActionBar())` added before `return`.
+
+---
+
+### 2026-06-30 — Diagnostic: _element DOM-node retention in knownLoadIds (no code change)
+
+**Finding: non-issue — backlog item closed.**
+
+`knownLoadIds` in `loadDetector.js` is a `Set<string>` (UUID strings only). Every write
+is `knownLoadIds.add(load.loadId)` — the string ID, never the full load object or its
+`_element`. Load objects with `_element` live only as local variables within each tick
+(`validLoads` / `newLoads` in `detectNewLoads()`; `result.newLoads` in
+`orchestratorTick()` and the `loadObserver` callback) and go out of scope when the tick
+resolves. No detached-DOM-node retention occurs via this path.
+
+Secondary observation: the Set grows unboundedly (IDs added but never evicted), but at
+~36 bytes per UUID the accumulation is negligible.
+
+No code change. No DIAG logging added.
+
+---
+
+### 2026-06-30 — Process change: remove mandatory plan-and-wait for routine work (CLAUDE.md)
+
+**Not a code change.** Updated the Communication section in both `CLAUDE.md` and
+`docs/CLAUDE.md`:
+
+- **Removed** blanket rules "Before work — short plan, wait for approval" and "Stop after
+  each stage, wait for approval".
+- **Added** rule 1: routine changes (wiring a UI control, fixing a documented bug,
+  applying a fully-specified prompt) proceed directly — report after, not before.
+- **Added** rule 2: plan-first + wait for approval is still required for (a) anything
+  touching FORBIDDEN_SELECTORS or adding any new `.click()` site (Amazon DOM or
+  extension-owned), and (b) prompts that explicitly say "report plan before coding".
+- Kept unchanged: bug-reproduction rule, "broke something → say so immediately", all
+  "After ANY change" documentation rules, "Before ANY change" read rules.
+
+---
+
+### 2026-06-30 — Wire popup-reset button (Reset to Defaults)
+
+**What:** wired the previously inert `popup-reset` button. Click immediately clears every
+extension-managed key from `chrome.storage.local` (all 15 keys in `STORAGE_KEYS`,
+including dead legacy keys SPEED/RUNNING/PRICE_HISTORY — harmless no-op for those since
+they're no longer written there) and resets all popup UI controls to documented defaults.
+No confirm dialog. `tabState` (sessionStorage, per-tab) is intentionally left untouched.
+
+**Restyled:** changed from a prominent full-width green-bordered button to a small, muted
+text link (`color:#aaa`, `font-size:11px`, underlined) positioned bottom-left via a new
+`.popup-footer` flex wrapper. Becomes slightly darker on hover (`color:#666`). Low
+visibility matches its infrequent-use intent.
+
+**Bug fixed (discovered during implementation):** the existing `chrome.storage.onChanged`
+listener in `popup.js` assigned `changes[KEY].newValue` directly for `volumeSlider`,
+`soundSelect`, and `surgeThreshold`. On a `remove()` call, `newValue` is `undefined` —
+this would stomp the reset handler's correct default values, leaving those fields blank.
+Fixed: all three assignments now fall back to the documented default when `newValue` is
+`undefined` (`70`, `'default'`, `50` respectively).
+
+**Script includes added to popup.html:** `utils/constants.js`, `utils/logger.js`,
+`utils/storage.js` (in manifest order, before `popup.js`) — provides `STORAGE_KEYS` for
+the exhaustive key list, and `logger` per CLAUDE.md rule 8. `logger.log()` added at the
+`DOMContentLoaded` entry point and at reset handler entry + completion.
+
+- **`popup/popup.html`**: 3 script includes; `popup-reset` wrapped in `.popup-footer` div.
+- **`popup/popup.css`**: `.popup-reset` restyled as text link; `.popup-footer` added.
+- **`popup/popup.js`**: `resetBtn` wired; 3 onChanged lines hardened; `logger.log()` at
+  `DOMContentLoaded` entry.
+
+---
+
+### 2026-06-30 — Replace automatic memory-watchdog reload with manual dispatcher-controlled indicator
+
+**Why:** the automatic memory watchdog (`shouldReloadForMemory()`, content.js) called
+`location.reload()` on its own once heap usage crossed 500MB/70%. Amazon Relay's search
+filters (Origin, Radius, Payout min, Equipment) live only in React state, not the URL, so
+the auto-reload silently wiped them with no warning — restoring them would require
+simulating clicks on Amazon's own filter controls, which is out of scope per SAFETY.md.
+Decision: remove the automatic trigger; let the dispatcher decide when to reload.
+
+**content/content.js:**
+- Removed `shouldReloadForMemory()`, `MEMORY_RELOAD_RATIO`, `MEMORY_RELOAD_MIN_BYTES`, the
+  auto-reload block in `orchestratorTick()`, and the `ext_resume_after_memory_reload`
+  sessionStorage resume-flag (no longer needed — there's no automatic reload to resume
+  from, and the dispatcher chose not to auto-resume after a manual reload either).
+- Added `getHeapUsageRatio()` — returns `{ usedBytes, limitBytes, ratio }` or `null` if
+  `performance.memory` is unavailable. Pure read, no side effects, callable from
+  sidebar.js independent of the orchestrator loop's running state.
+
+**content/sidebar.js:**
+- New `ext-memory-indicator` (small color-interpolated dot, green ≤40% → amber ~62.5% →
+  red ≥85% of heap limit; stops tunable via `MEMORY_INDICATOR_LOW/MID/HIGH` constants).
+  Polled every `MEMORY_POLL_MS` (7000ms) via `setInterval`, independent of `tabState.running`
+  so it stays live while paused. Click or Enter/Space → `location.reload()` directly —
+  dispatcher-initiated only, no automatic trigger anywhere in the extension. Per dispatcher
+  decision, the loop does NOT auto-resume after this manual reload.
+- New `ext-memory-info` icon — hover (desktop) and tap/focus (touch + keyboard) reveal a
+  `textContent`-only tooltip (`ext-memory-tooltip`) explaining the reload and that the
+  dispatcher will need to re-enter search filters afterward.
+
+**docs/SAFETY.md:** documented `ext-memory-indicator` as an extension-owned click (our own
+UI, not Amazon DOM) in a new "Extension-owned click" section — explicitly NOT added to the
+"three click sites" list, since that rule governs Amazon DOM only.
+
+**Out of scope (unchanged):** auto-restoring Amazon's filters after reload — tracked in
+BACKLOG.md as a future feature, not started.
+
+- **`content/content.js`**: removed auto-reload watchdog; added `getHeapUsageRatio()`.
+- **`content/sidebar.js`**: added `ext-memory-indicator` + `ext-memory-info`.
+- **`docs/SAFETY.md`**: documented the new extension-owned click site.
+
+---
+
 ### 2026-06-18 — Style left-side stop numbers in segment header rows as blue circles
 
 **Root cause:** `titleSpan` (`.ext-seg-title`, leftmost 40 px column) rendered its origin stop# as plain bold black text. The destination stop# (added in the previous step as a `.ext-stop-num` circle inside `destEl`) was already styled correctly. The two sides were visually mismatched.
