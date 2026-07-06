@@ -23,9 +23,12 @@ Volume slider (`popup-volume`) wired, persists as `soundVolume` (0–100, defaul
 ### Hide tag filters ✅ DONE
 Four compact toggles side-by-side in popup (`.popup-tag-block`): Promoted / Starting soon / Trailer ready / Booked before. Each hides the matching tag **badge only** via `display:none` on the respective `[id="..."]` element — space collapses (no leftover gap). If ALL known tag children of a `.wo-tag` wrapper are hidden, the wrapper itself is also set to `display:none`. Load card stays fully visible and participates in new-load detection. `MutationObserver` active only while ≥1 toggle is on. Storage keys: `hidePromoted`, `hideStartingSoon`, `hideTrailerReady`, `hidePastBook` (all boolean, default false).
 
-### Hide Similar Matches (UI-BUILT)
+### Auto-Open Top Load ✅ DONE (2026-07-03)
+`popup-auto-open` checkbox in popup (under Tab Alert row). Key: `STORAGE_KEYS.AUTO_OPEN = 'autoOpenTopNew'`. True-default: `checked = data[KEY] !== false`. When OFF: loop still detects + highlights + sounds + auto-stops, but `openTopNewLoad` is not called and no inline panel renders. Reset restores to ON.
+
+### Hide Similar Matches ✅ DONE
 Toggle (`popup-hide-similar`). On enable: find the second `div.load-list` (the "Similar matches" block) and hide its parent container via `display:none`. The parser already ignores it (first `div.load-list` only), so this is purely visual decluttering.
-- Storage key to add: `STORAGE_KEYS.HIDE_SIMILAR = 'hideSimilar'` (boolean)
+- Storage key: `STORAGE_KEYS.HIDE_SIMILAR = 'hideSimilarMatches'` (boolean)
 
 ### Reset to Defaults ✅ DONE (2026-06-30)
 Button (`popup-reset`). Clears all extension-managed keys (`Object.values(STORAGE_KEYS)`)
@@ -75,20 +78,78 @@ starts (new click/input sites on Amazon's page, currently zero such sites exist 
 
 ---
 
+## LoadUnit — unified per-load data model ✅ DONE (Steps 1–3, 2026-06-30)
+
+`utils/loadStore.js` — in-memory per-tab store, not sessionStorage-backed. Functions:
+`mergeLoadUnit`, `getLoadUnit`, `pruneLoadUnits`, `getAllLoadUnits`. Loaded in manifest
+immediately after `tabState.js`. Phase 1 (board fields) wired in `loadParser.js` every
+tick. Phase 2 (detail struct) wired in `inlinePanel.js / showInlinePanel()`. Return
+values and external behavior of both caller sites unchanged. `window.__EXT_DEBUG.getLoadUnits`
+exposed for console inspection.
+
+**Step 4 — priceSurge.js migration (DEFERRED)**
+Migrating `tabState.priceHistory` into LoadUnit (`payoutPrev` field per entry) was
+explicitly deferred. `checkPriceSurge` and `tabState.priceHistory` are unchanged.
+
+**searchContext (NOT YET PARSED)**
+`searchContext: null` in every LoadUnit. Requires new Amazon filter-panel selector work
+before implementation. Schema slot is reserved.
+
+---
+
+## Popup / sidebar / sound fix pass ✅ DONE (2026-07-03)
+
+Six fixes across `popup/`, `content/sidebar.js`, `content/priceSurge.js`, `utils/constants.js`, `utils/storage.js`. New file: `utils/soundDefs.js`. See CHANGELOG.md 2026-07-03 for full detail.
+
+1. **Auto-Open popup toggle** — `popup-auto-open` checkbox wired. True-default.
+2. **Shared sound definitions** — `utils/soundDefs.js` global extracted; `POPUP_SOUND_DEFS` and `SOUND_DEFS` locals deleted from popup.js and soundAlert.js respectively. Popup preview and in-page alert now provably identical.
+3. **toggleRunning tabState fix** — reads `tabState.get('running')` instead of stale DOM attribute.
+4. **Logger discipline** — 3 `console.log` calls in popup.js replaced with `logger.log`.
+5. **priceSurge null-parent guard** — `if (badge.parentNode)` before `removeChild`.
+6. **Log noise + hardening** — `updateMemoryIndicator` demoted to `logger.debug`; `isForbiddenElement` guards non-Element nodes; SPEED/RUNNING/PRICE_HISTORY annotated legacy.
+
+---
+
+## detailOpener / loadParser / panelCloser / refreshManager fix pass ✅ DONE (2026-07-03)
+
+Five fixes in the click and parse pipeline. See CHANGELOG.md 2026-07-03 for full detail.
+
+1. **Highest-paying auto-open** (`sortByPayoutDesc` in content.js + runDetectionPipeline) — SPEC.md gap now closed: the extension now opens the highest-payout new load, not the first in DOM order.
+2. **Detach guard in 250ms scroll-settle** (detailOpener.js) — prevents viewport-corner click when React unmounts the card mid-settle.
+3. **Nested duplicate card filter** (loadParser.js) — `.wo-card-header--highlighted` inner headers no longer produce null-loadId duplicate parses.
+4. **panelCloser Strategy 2 tightened** — prefers the top-area icon button; logs candidate index for diagnosability.
+5. **Stale "ONE allowed click" comments** replaced with canonical SAFETY.md references.
+
+---
+
+## Core loop bug-fix pass ✅ DONE (2026-07-03)
+
+Seven hardening fixes in `utils/tabState.js`, `content/content.js`, `content/loadObserver.js`, `content/loadParser.js`. No new click sites. See CHANGELOG.md 2026-07-03 for full detail.
+
+1. **tabState.set no-op on unchanged value** — skips sessionStorage write + subscriber notify when value is already current (except `priceHistory`).
+2. **Double-loop race guard** (`orchLoopActive` flag) — a second `running=true` during an in-flight tick cannot start a parallel loop chain.
+3. **Shared detection pipeline** (`runDetectionPipeline`) — deduplicated the verbatim detect→highlight→sound→tabAlert→auto-open→auto-stop block from `orchestratorTick` and `runObserverPipeline` into one function.
+4. **Observer re-arm on tick overlap** — instead of silently dropping mutations that arrive while `orchTickRunning`, re-arms up to 3× (with `MAX_REARMS` cap).
+5. **Prune guard on transient empty parse** — `pruneLoadUnits` is skipped when `parseLoads()` returns 0 results (React remount transient).
+6. **isExtManagedNode inner-container fix** — `node.closest('#ext-inline-panel, #ext-sidebar')` catches icon-swap child nodes inside our containers.
+7. **Heap log noise** — `getHeapUsageRatio()` entry demoted from `logger.log` to `logger.debug`.
+
+---
+
 ## Stage 14 — PAT Helper (PLANNED)
 Fill the Post-a-Truck form programmatically based on the selected load. User submits manually. No auto-submit. See MVP_SPECIFICATION.md for original stage definition.
 
 ---
 
-## Card Action Bar (PLANNED)
+## Card Action Bar ✅ PARTIAL DONE (2026-06-30)
 
-Three icon-only buttons at the bottom of the expanded inline panel. Minimal, unobtrusive.
+Three icon-only buttons at the bottom of the expanded inline panel. Bar and all icons render.
 
-| Button | Plan |
-|--------|------|
-| Route Map | **Wired (2026-06-30)**: click → `openRouteInMaps(data)` → Google Maps Directions URL (origin/waypoints/destination from deduplicated `data.segments` stops), `window.open` new tab. |
-| Copy Screenshot | `html2canvas` → write PNG to clipboard. Needs `clipboardWrite` permission added to manifest (only when this feature lands). User click provides the required gesture. |
-| Create Post | Placeholder icon only. No functionality yet. |
+| Button | Status |
+|--------|--------|
+| Copy Screenshot (`ext-action-camera`) | **✅ Wired (2026-06-30)**: click → `html2canvas(cardElement)` → PNG blob → `navigator.clipboard.write()`. Success: green checkmark flash 1.1 s. `vendor/html2canvas.min.js` v1.4.1 vendored; `clipboardWrite` permission in manifest. |
+| Route Map (`ext-action-map`) | **✅ Wired (2026-06-30)**: click → `openRouteInMaps(data)` → Google Maps Directions URL (origin/waypoints/destination from deduplicated `data.segments` stops), `window.open` new tab. |
+| Create Post (`ext-action-post`) | **Render-only placeholder.** Icon renders and hovers. No modal, no click handler. Wire when PAT Helper (Stage 14) or Create Post spec is defined. |
 
 ---
 
@@ -96,7 +157,6 @@ Three icon-only buttons at the bottom of the expanded inline panel. Minimal, uno
 
 | Permission | Feature |
 |-----------|---------|
-| `clipboardWrite` | Copy Screenshot button — ✅ ADDED 2026-06-30 |
 | possibly `tabs` | Tab Alert (may not be needed depending on approach) |
 
 ---

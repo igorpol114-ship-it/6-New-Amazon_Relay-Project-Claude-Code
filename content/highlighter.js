@@ -6,8 +6,9 @@ function injectHighlightStyle() {
   var style = document.createElement('style');
   style.id = 'ext-highlight-style';
   style.textContent =
-    '.ext-new-load {' +
-      'background-color: rgb(182, 227, 255) !important;' +
+    '.ext-new-load{' +
+      'background-color:var(--ext-accent-bg) !important;' +
+      'box-shadow:inset 4px 0 0 0 var(--ext-accent);' +
     '}';
   document.head.appendChild(style);
 }

@@ -2,6 +2,163 @@
 
 ## [Unreleased]
 
+### 2026-07-06 — Bug: Sidebar dark mode ignored (root cause: nightMode.js !important override)
+
+Files changed: `content/nightMode.js`, `content/sidebar.js`.
+
+Root cause: `nightMode.js` `buildNightCss()` contained `html.ext-night #ext-sidebar{background-color:#1a5c38 !important}` — the old solid green with `!important`, which overrode the CSS-var-based tokens from `designTokens.js`. Three other stale night-mode values were also present: `.ext-new-load` used an old blue rgba, the pill used the old translucent-on-green rgba, and the scanline used the old green gradient.
+
+- **`content/nightMode.js`** — updated 4 lines in `buildNightCss()`:
+  - `.ext-new-load` dark: `rgba(120,180,235,0.20)` → `rgba(76,141,255,.15)` + inset left-rule `rgba(76,141,255,.8)` (matches new accent-bg highlight design)
+  - `#ext-sidebar` bg: `#1a5c38 !important` → `#1c1f24 !important` + `color:#e5edf5 !important` (dark neutral surface)
+  - `ext-playpause` pill: `rgba(255,255,255,0.15)` → dark neutral `#23272d`, border `#2c313a`, icon `#b0bcca`
+  - Scanline gradient: old green `rgba(125,207,142,...)` → blue `rgba(76,141,255,...)`
+  - `NIGHT_HEADER = '#1a5c38'` left intact — still used for Amazon's native `<header>`/`[role="banner"]`/`nav` (line 82), which is intentional in the night mode theme.
+
+- **`content/sidebar.js`** — added `html.ext-night #ext-sidebar { … !important }` explicit dark override block (belt-and-suspenders; guards against future nightMode.js injection-order changes). Covers: bar bg/color/border/shadow, title color, pill (default + hover + running states), slider-value color, memory-indicator border, memory-info chip, tooltip bg/color.
+
+Verification: grepping all `*.js` and `*.css` for `#1a5c38`, `rgba(125,207`, `rgba(26,92,56`, `#185FA5`, `rgb(182,227` — only `NIGHT_HEADER` constant remains (Amazon header, expected).
+
+---
+
+### 2026-07-06 — Design system: blue accent tokens, restyled sidebar / popup / inline panel / highlighter / surge
+
+Files changed: `utils/designTokens.js` (new), `popup/popup.css` (full rewrite), `content/sidebar.js`, `content/inlinePanel.js`, `content/highlighter.js`, `content/priceSurge.js`, `popup/popup.js` (night-mode class wiring), `manifest.json`.
+
+Styling only — zero behavior changes. No new `.click()` sites, no DOM structure changes, every `data-testid` preserved.
+
+- **Token layer** (`utils/designTokens.js`, `manifest.json`, `popup/popup.css`): New file injects `<style id="ext-design-tokens">` with all `--ext-*` custom properties on `:root` and `html.ext-night` dark overrides. Listed FIRST in manifest content_scripts. Popup duplicates the token block at top of `popup/popup.css` (separate document — cannot share injected styles).
+- **Accent pivot**: green `#1a5c38` → blue `#1a73e8` (dark `#4c8dff`). Green demoted to semantic success only (`--ext-success`). New neutral scale n100–n900.
+- **Sidebar** (`content/sidebar.js`): Bar `#1a5c38` → `var(--ext-bar-bg)` (white/dark-surface) + n200 hairline + shadow-2. Title → `var(--ext-n900)`. Pill → n100 fill, n200 border, n700 icon; hover → n200; running state → accent fill + white icon. Slider/scanline → `var(--ext-accent)` (blue). Scanline gradient hardcoded RGB with `html.ext-night` dark override. `prefers-reduced-motion` scoped to `#ext-sidebar`. Memory dot border → n300; info icon → n100/n200/n700; tooltip → n900 bg / bar-bg text. Removed `--ext-scan-dur` declaration (now in token layer). `MEMORY_COLOR_NEUTRAL` → `#8fa1b2` (n400, visible on neutral bar).
+- **Popup CSS** (`popup/popup.css`): Full rewrite. Toggles resized 40×24/20px knob (main) and 32×18/14px (small filters). Accent → `var(--ext-accent)`. Title → n900. Section labels → n500 uppercase. Sound block → n100 bg. Replay btn hover → accent. Focus rings → accent outline everywhere.
+- **Popup night mode** (`popup/popup.js`): `document.documentElement.classList.toggle('ext-night', ...)` added in storage.get callback and in `onChanged` handler. Only JS change in this task.
+- **Inline panel** (`content/inlinePanel.js`): Panel border → n200. Panel bg → `var(--ext-surface)`. Header → accent-bg / accent-text. Seg header → n100 bg, n200 border, n700 text. Route arrow → n400 (neutral, not green). Stop-number circles → accent-bg fill + accent-text (AA 5.5:1). `ext-seg-loaded` → `var(--ext-success)`. Action bar → n100 bg, n200 border. Action btn hover → n200/n900. `flashActionSuccess` SVG stroke `#1a5c38` → `#157347` (correct semantic success).
+- **Highlighter** (`content/highlighter.js`): `rgb(182,227,255)` → `var(--ext-accent-bg)` + `box-shadow: inset 4px 0 0 0 var(--ext-accent)` left-rule.
+- **Surge** (`content/priceSurge.js`): Green `#1a5c38` → semantic amber `#7a4f00` / `rgba(212,167,44,.12)`. Added `html.ext-night` overrides: `#f0c040` / `.20` opacity. Surge badge remains the one loud non-accent element.
+
+---
+
+### 2026-07-03 — Bug-fix pass: popup / sidebar / priceSurge / constants / storage (6 fixes)
+
+Files changed: `popup/popup.html`, `popup/popup.js`, `content/soundAlert.js`, `content/sidebar.js`, `content/priceSurge.js`, `utils/constants.js`, `utils/storage.js`, `utils/soundDefs.js` (new), `manifest.json`.
+
+- **FIX 1 — Auto-Open Top Load popup toggle** (`popup/popup.html`, `popup/popup.js`): Added `popup-auto-open` checkbox to popup (after Tab Alert row, same pattern). `KEY_AUTO_OPEN = 'autoOpenTopNew'`; loaded with `checked = data[KEY] !== false` (true-default); `onChanged` also uses `!== false`; reset sets `checked = true`. Corresponds to the existing `STORAGE_KEYS.AUTO_OPEN` key already consumed in `content.js`.
+- **FIX 2 — Shared sound definitions** (`utils/soundDefs.js` new, `content/soundAlert.js`, `popup/popup.js`, `manifest.json`, `popup/popup.html`): Created `utils/soundDefs.js` exposing a global `var SOUND_DEFS` (25 entries with numbered comments — canonical version from soundAlert.js). Added to manifest content_scripts before `content/soundAlert.js`; added to popup.html before `popup.js`. Deleted `SOUND_DEFS` from `soundAlert.js`; `getSoundTones` now uses the global. Deleted `POPUP_SOUND_DEFS` from `popup.js`; `popupGetSoundTones` now uses the global. Both sound paths now guaranteed identical for the same soundId.
+- **FIX 3 — toggleRunning reads tabState, not DOM attribute** (`content/sidebar.js`): `toggleRunning()` changed from `container.getAttribute('data-running') !== 'true'` to `!tabState.get('running')`. The DOM attribute is a *view* of the state (written by `reflectRunning`), not the authoritative source. Race condition: if `reflectRunning` hasn't fired yet, the DOM attribute may be stale. `tabState.get('running')` is always current.
+- **FIX 4 — logger discipline in popup.js** (`popup/popup.js`): Replaced three `console.log` calls with `logger.log('popup', ...)` (CLAUDE.md rule 8 — every function must use `logger`): `surgeThreshold loaded`, `surgeEnabled saved`, `surgeThreshold saved`.
+- **FIX 5 — clearSurgeHighlights null-parent guard** (`content/priceSurge.js`): `badge.parentNode.removeChild(badge)` wrapped in `if (badge.parentNode)`. A surge badge can be orphaned if Amazon React unmounts the card between the badge insertion and the next `clearSurgeHighlights` call. Null-parent `removeChild` throws a `NotFoundError` that silently kills the rest of the tick's badge-removal loop.
+- **FIX 6 — log noise + hardening** (`content/sidebar.js`, `utils/constants.js`, `utils/storage.js`): `updateMemoryIndicator()` entry changed from `logger.log` to `logger.debug` (fires every 7s — too noisy at normal level). `isForbiddenElement()` now guards `el.nodeType !== 1 || typeof el.matches !== 'function'` before `.some()` — prevents TypeError when a text node or comment node is passed (e.g. from a MutationObserver record). `STORAGE_KEYS.SPEED`, `RUNNING`, `PRICE_HISTORY` annotated as legacy (moved to tabState; kept so Reset cleans old installs).
+
+Test cases added: TC-POPUP-1 (auto-open OFF: no card opens), TC-SOUND-1 (popup preview matches in-page alert).
+
+---
+
+### 2026-07-03 — Bug-fix pass: detailOpener / loadParser / panelCloser / refreshManager + content pipeline (5 fixes)
+
+Files changed: `content/content.js`, `content/detailOpener.js`, `content/loadParser.js`, `content/panelCloser.js`, `content/refreshManager.js`.
+
+- **FIX 1 — highest-paying auto-open** (`content/content.js`, `content/detailOpener.js`): Added `sortByPayoutDesc(loads)` helper in `content.js` — returns a copy of the loads array sorted by numeric payout descending; unparseable payouts sort to end (`-Infinity`). `runDetectionPipeline` now sorts `result.newLoads` and `surgeLoads` via `sortByPayoutDesc` before passing to `openTopNewLoad` and `showInlinePanel`; `highlightNewLoads` continues to receive the original unordered array. `detailOpener.js` header comment updated to note that the caller passes payout-sorted loads. This is a behavior change at the existing neutral-zone click site (no new click site added).
+- **FIX 2 — detach guard in deferred click** (`content/detailOpener.js`): Added `if (!document.contains(el))` check inside the `setTimeout(250)` callback, before computing `getBoundingClientRect()`. A React remount during the scroll-settle window detaches the card; a detached rect is (0,0) and `elementFromPoint` would click a viewport-corner element. Guard logs a warn and returns without clicking.
+- **FIX 3 — nested duplicate card guard** (`content/loadParser.js`): `querySelectorAll` result converted to array; elements contained within another match in the same set are filtered out (`elB.contains(elA)` → drop `elA`). Prevents `.wo-card-header--highlighted` inner headers from producing a duplicate parse with `loadId=null`. Logs `logger.debug` with dropped count when > 0.
+- **FIX 4 — panelCloser Strategy 2 less greedy** (`content/panelCloser.js`): Strategy 2 now collects ALL icon-only button candidates (no text, has SVG child) first, then prefers the candidate whose `getBoundingClientRect().top` falls within 80px of the sheet's top (most likely the close button). Falls back to first candidate if none qualify. Logs which strategy path and candidate index were used, plus total candidate count.
+- **FIX 5 — stale "ONE allowed click" comments** (`content/refreshManager.js`, `content/detailOpener.js`): Two comment-only changes replacing "the ONE allowed .click() in this project/codebase" with "one of the three allowed Amazon-DOM click sites — see docs/SAFETY.md (canonical)". Comment in `detailOpener.js` header also updated (combined with FIX 1 header update).
+
+Test cases added: TC-OPEN-1 (highest-paying card opened), TC-OPEN-2 (detach guard), TC-PARSE-1 (no null-loadId duplicates).
+
+---
+
+### 2026-07-03 — Bug-fix pass: inlinePanel.js (5 fixes)
+
+File changed: `content/inlinePanel.js`. Docs updated: `docs/AMAZON_SELECTORS.md`, `docs/TEST_CASES.md`.
+
+- **FIX 1 — waitForSheet stale-sheet guard** (`waitForSheet`, `sheetFingerprint`, `initManualToggle`): Added `sheetFingerprint(sheet)` helper (payout text + expander count + first stop label). Before calling `waitForSheet`, `initManualToggle` now captures `prevFingerprint` from the currently open sheet (if any). `waitForSheet(callback, prevFingerprint)` only declares the sheet ready when its fingerprint has changed from `prevFingerprint` — prevents reading the previous card's still-open sheet on the very first 50ms poll. Timeout fallback (1500ms) is unchanged; downstream handles stale reads. Auto-open path is not affected (calls `showInlinePanel` directly, does not go through `waitForSheet`).
+- **FIX 2 — currentPanelCard desync between manual and auto paths** (`showInlinePanel`, `removeInlinePanel`, `initManualToggle`): Ownership of `currentPanelCard` moved into `showInlinePanel` (set on successful render) and `removeInlinePanel` (cleared). `initManualToggle` no longer touches the variable. Effect: auto-opened panels now register in `currentPanelCard`, so (a) clicking the auto-opened card once toggle-closes it, and (b) clicking an old card no longer removes a newer card's panel.
+- **FIX 3 — global stop numbering breaks for segments with ≠2 stops** (`readSheetData`, `buildPanelElement`): Replaced per-segment formula `baseNum + sn` (broke for 3-stop segments) with a cumulative counter. Boundary stops (first stop of each non-first segment) get `counter - 1` (same as the previous segment's last stop number) without advancing the counter. Verified against documented example: 3×2-stop segments → 1,2/2,3/3,4 (identical output). `buildPanelElement` fallback changed from `stops.length > 1` to `stops.length > 0` for `destNum` — uses actual `stops[].num` whenever any stop exists.
+- **FIX 4 — selector-drift alarm for hashed css-XXXX selectors** (`readSheetData`): Two `logger.warn('inlinePanel', 'SELECTOR DRIFT SUSPECTED …')` calls added: (1) when `.load-expander` count is 0 while the sheet exists; (2) when all parsed segments have 0 stops AND empty fromTo (all hashed selectors returned nothing). No behavior change — alarm only.
+- **FIX 5 — flashActionSuccess writes string "null" as title** (`flashActionSuccess`): `btn.setAttribute('title', originalTitle)` now guarded: if `originalTitle === null` (button had no title attribute), calls `btn.removeAttribute('title')` instead to avoid writing the literal string `"null"`.
+
+AMAZON_SELECTORS.md: new section "Detail sheet content (inlinePanel readSheetData) ⚠ FRAGILE" listing all hashed selectors with verification date and drift-alarm note.
+Test cases added: TC-PANEL-4 (stale-sheet guard), TC-PANEL-5 (auto-open toggle-close + cross-card desync), TC-STOP-3 (3-stop segment numbering).
+
+---
+
+### 2026-07-03 — Bug-fix pass: core loop hardening (7 fixes)
+
+Files changed: `utils/tabState.js`, `content/content.js`, `content/loadObserver.js`, `content/loadParser.js`. No new click sites, no FORBIDDEN_SELECTORS changes.
+
+- **FIX 1 — tabState.set no-op on unchanged value** (`utils/tabState.js`): `set(key, value)` now returns early with a `logger.debug` line when `_state[key] === value` and `key !== 'priceHistory'`. Prevents redundant sessionStorage writes and subscriber notifications (e.g., repeated `running=false` calls no longer re-fire `stopOrchestrator`).
+- **FIX 2 — startOrchestrator double-loop race** (`content/content.js`): Added module-level `orchLoopActive` flag. `startOrchestrator()` checks it first and returns with a warn if true; sets it to `true` before firing the first tick. `stopOrchestrator()` clears it. `scheduleNextTick()` bails if `!orchLoopActive`. Prevents a second `running=true` event during an in-flight tick from starting a parallel loop chain.
+- **FIX 3 — extract shared detection pipeline** (`content/content.js` + `content/loadObserver.js`): The detect→highlight→sound→tabAlert→auto-open→inline-panel→auto-stop block was verbatim-duplicated. Extracted into `async function runDetectionPipeline(sourceTag)` in `content.js`. `orchestratorTick()` now calls `await runDetectionPipeline('tick')` after refresh+settle. `runObserverPipeline()` calls `await runDetectionPipeline('observer')`. `sourceTag` appears in all log lines so tick vs observer origin is distinguishable. Behavior identical to before.
+- **FIX 4 — observer re-arms instead of dropping mutations during a tick** (`content/loadObserver.js`): When `runObserverPipeline` skips because `orchTickRunning` is true, it now re-arms a `setTimeout(runObserverPipeline, OBSERVE_DEBOUNCE_MS)` instead of silently dropping. Module-level `_rearmCount` caps at `MAX_REARMS = 3` consecutive re-arms; resets to 0 on successful run. Prevents DOM changes that arrive mid-tick from being lost.
+- **FIX 5 — pruneLoadUnits guard on transient empty parse** (`content/loadParser.js`): `pruneLoadUnits` is now skipped when `results.length === 0`. A transient React remount during a filter change can briefly return 0 cards; the old code would wipe all LoadUnits including Phase 2 detail data. Logs `logger.debug` when skipped.
+- **FIX 6 — isExtManagedNode catches inner container nodes** (`content/loadObserver.js`): Added `node.closest('#ext-inline-panel, #ext-sidebar')` check. Icon swaps (e.g., `flashActionSuccess` checkmark replacement) insert child nodes inside our panel without `ext-` IDs; they previously triggered useless observer pipeline passes.
+- **FIX 7 — heap log noise** (`content/content.js`): `getHeapUsageRatio()` entry log changed from `logger.log` to `logger.debug`. It fires every 7 s from the sidebar memory-indicator poll, flooding logs at normal level.
+
+Test cases added: TC-LOOP-1 (rapid toggle race), TC-STORE-1 (LoadUnit detail survives transient empty render).
+
+---
+
+### 2026-07-03 — Documentation synchronization pass (MD files only)
+
+Full 9-item consistency pass across all project docs. No code files were changed.
+
+- **Root `CLAUDE.md` deleted** — was the stale two-click-site version. `docs/CLAUDE.md` is now the single source of truth; "Правило завершення задачі" section appended to it.
+- **`README.md`** — rewritten to reflect 2026-06-30 reality: 3+1 click sites, popup fully wired, Camera+Map wired, LoadUnit done, memory watchdog replaced by manual indicator.
+- **`docs/SPEC.md`** — "20 sounds" → "25 sounds"; "Only two click types" → three Amazon-DOM click types with SAFETY.md reference for the extension-owned memory-indicator click.
+- **`STATE.md`** — "Що далі" reduced from 4 contradictory items to 2 clean items (auto-filter restore PLANNED; `_element` audit CLOSED). "Блокери" reduced to 1: the two stale blockers (`_element` GC blocker and `clipboardWrite` not-added-yet blocker) removed.
+- **`docs/BACKLOG.md`** — "Hide Similar Matches" marked ✅ DONE; storage key corrected from `'hideSimilar'` to `'hideSimilarMatches'`; `clipboardWrite` removed from Future manifest additions table (feature shipped 2026-06-30).
+- **`docs/TEST_CASES.md`** — TC-TAB-5 rewritten (no auto-resume; loop starts paused, speed/threshold restore via tabState.init, dispatcher presses play manually); TC-OBS-5 rewritten (no `ext_resume_after_memory_reload` flag); TC-MEM-1 added (indicator polls while paused, click reloads, tooltip warns about filter loss).
+- **`docs/AMAZON_SELECTORS.md`** — stale DIAG-logs paragraph replaced with one-line note: "DIAG logs removed 2026-06-18 after observer behavior was confirmed."
+- **`STATE.md`** — "Оновлено" date updated to 2026-07-03; "Що в роботі" updated to reflect docs pass complete.
+
+---
+
+### 2026-06-30 — LoadUnit: unified per-load data model (Steps 1–3)
+
+**New file: `utils/loadStore.js`**
+
+In-memory per-tab load data store (`loadStore` IIFE). Keyed by `loadId` (UUID string).
+In-memory only — cleared on any page reload (including dispatcher-triggered
+ext-memory-indicator reload). NOT sessionStorage- or chrome.storage.local-backed.
+Phase 2 (detail) data is only repopulated when the dispatcher reopens the detail sheet.
+
+Functions exposed as `loadStore.*`:
+- `mergeLoadUnit(loadId, patch)` — creates the entry if absent (with `firstSeenAt: Date.now()`),
+  then applies the patch. `_element` is always excluded. `detail` and `searchContext` replace
+  in full (no recursive merge). `payoutNum` is derived automatically from `patch.payout`.
+- `getLoadUnit(loadId)` — returns the LoadUnit or null.
+- `pruneLoadUnits(currentLoadIds)` — removes entries for loads no longer on the board; takes
+  a `Set<string>` of currently visible loadIds.
+- `getAllLoadUnits()` — returns the live internal map by reference; for debugging / future sync.
+  Callers must not mutate returned objects.
+
+`window.__EXT_DEBUG.getLoadUnits` exposed for console inspection (same pattern as `getLoads`).
+
+**`manifest.json`** — `utils/loadStore.js` added to content_scripts js array immediately
+after `utils/tabState.js` and before `vendor/html2canvas.min.js`, so it is defined before
+any content/ module that calls it.
+
+**`content/loadParser.js`** — inside `parseLoads()` for loop, after `results.push(load)`:
+calls `loadStore.mergeLoadUnit(load.loadId, phase1Patch)` where `phase1Patch` contains all
+ParsedCard fields except `_element`, `detail`, and `searchContext`. `boardStops` is the
+renamed mapping of `load.stops` (abbreviated board-level strings, distinct from full
+addresses in Phase 2 detail). After the for loop, calls
+`loadStore.pruneLoadUnits(new Set(results.map(l => l.loadId).filter(Boolean)))`. Return
+value and all external behavior of `parseLoads()` are unchanged — this is purely additive.
+
+**`content/inlinePanel.js`** — in `showInlinePanel()`, after `readSheetData()` succeeds:
+resolves `loadId` from `cardElement.querySelector('div[id]').id` (same selector
+`parseOneCard` uses) and calls `loadStore.mergeLoadUnit(loadId, { detail: data })`. No
+change to panel render path. `showInlinePanel()`'s return value and behavior are unchanged.
+
+**`priceSurge.js`** — NOT touched. Step 4 (migrating `tabState.priceHistory` into
+LoadUnit) is explicitly deferred per the approved plan.
+
+**`searchContext`** — stays `null` in every LoadUnit; explicitly not parsed. Slot is
+reserved in the schema for when new Amazon selector work is done.
+
+---
+
 ### 2026-06-30 — Wire ext-action-map: open Google Maps directions for load route
 
 **`content/inlinePanel.js`:**

@@ -1,3 +1,42 @@
+/* ── Design tokens (duplicated from utils/designTokens.js — popup is a separate document) ── */
+:root {
+  --ext-accent:       #1a73e8;
+  --ext-accent-hover: #1765d0;
+  --ext-accent-bg:    #e8f0fe;
+  --ext-accent-text:  #155ab5;
+  --ext-success:      #157347;
+  --ext-bar-bg:       #ffffff;
+  --ext-surface:      #ffffff;
+  --ext-n100:         #f5f7fa;
+  --ext-n200:         #e2e6ea;
+  --ext-n300:         #c8d0d8;
+  --ext-n400:         #8fa1b2;
+  --ext-n500:         #607080;
+  --ext-n700:         #364455;
+  --ext-n900:         #0e1c2b;
+  --ext-shadow-1:     0 1px 3px rgba(0,0,0,.08);
+  --ext-radius-card:  8px;
+  --ext-radius-sm:    4px;
+}
+
+html.ext-night {
+  --ext-accent:       #4c8dff;
+  --ext-accent-hover: #6ba1ff;
+  --ext-accent-bg:    #172236;
+  --ext-accent-text:  #7aa9ff;
+  --ext-success:      #37b06f;
+  --ext-bar-bg:       #1c1f24;
+  --ext-surface:      #23272d;
+  --ext-n100:         #23272d;
+  --ext-n200:         #2c313a;
+  --ext-n300:         #3a4250;
+  --ext-n400:         #586070;
+  --ext-n500:         #7a8c9c;
+  --ext-n700:         #b0bcca;
+  --ext-n900:         #e5edf5;
+}
+
+/* ── Base ── */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6,61 +45,65 @@
 
 body {
   width: 320px;
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   font-size: 13px;
-  color: #222;
-  background: #fff;
+  color: var(--ext-n900);
+  background: var(--ext-bar-bg);
 }
 
 .popup-container {
-  padding: 12px 16px 14px;
+  padding: 14px 16px 16px;
 }
 
+/* ── Header ── */
 .popup-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ext-n200);
 }
 
 .popup-title {
   font-weight: 700;
   font-size: 14px;
-  color: #1a5c38;
+  color: var(--ext-n900);
+  letter-spacing: -.1px;
 }
 
 .popup-version {
   font-size: 11px;
-  color: #888;
+  color: var(--ext-n500);
 }
 
+/* ── Section title ── */
 .popup-section-title {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #1a5c38;
-  margin: 2px 0 10px;
+  letter-spacing: .6px;
+  color: var(--ext-n500);
+  margin: 4px 0 12px;
 }
 
+/* ── Row ── */
 .popup-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .popup-row--sub {
-  margin-top: -4px;
+  margin-top: -6px;
   margin-bottom: 14px;
 }
 
 .popup-label {
   flex: 1 1 auto;
   font-size: 12px;
-  color: #444;
+  color: var(--ext-n700);
   cursor: default;
   user-select: none;
 }
@@ -72,15 +115,15 @@ body {
 .popup-row--sub .popup-label {
   flex: 1 1 auto;
   font-size: 11px;
-  color: #666;
+  color: var(--ext-n500);
 }
 
-/* Toggle switch */
+/* ── Toggle switch — 40×24, 20px knob ── */
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 38px;
-  height: 20px;
+  width: 40px;
+  height: 24px;
   flex-shrink: 0;
 }
 
@@ -94,50 +137,57 @@ body {
 .toggle-track {
   position: absolute;
   inset: 0;
-  background: #ccc;
-  border-radius: 20px;
+  background: var(--ext-n300);
+  border-radius: 24px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background .18s;
 }
 
 .toggle-track::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
   background: #fff;
   border-radius: 50%;
-  transition: transform 0.2s;
+  transition: transform .18s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 
 .toggle-switch input:checked + .toggle-track {
-  background: #1a5c38;
+  background: var(--ext-accent);
 }
 
 .toggle-switch input:checked + .toggle-track::after {
-  transform: translateX(18px);
+  transform: translateX(16px);
 }
 
-/* Range base */
+.toggle-switch input:focus-visible + .toggle-track {
+  outline: 2px solid var(--ext-accent);
+  outline-offset: 2px;
+}
+
+/* ── Range base ── */
 input[type="range"] {
-  accent-color: #1a5c38;
+  accent-color: var(--ext-accent);
   cursor: pointer;
 }
 
-/* Sound block */
+/* ── Sound block ── */
 .popup-sound {
-  background: #f5f6f4;
-  border-radius: 8px;
+  background: var(--ext-n100);
+  border: 1px solid var(--ext-n200);
+  border-radius: var(--ext-radius-card);
   padding: 10px 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .popup-sound-head {
   font-size: 12px;
   font-weight: 600;
-  color: #444;
+  color: var(--ext-n700);
   margin-bottom: 8px;
 }
 
@@ -155,7 +205,7 @@ input[type="range"] {
 .popup-sound-ic {
   width: 16px;
   height: 16px;
-  color: #888;
+  color: var(--ext-n400);
   display: inline-flex;
   flex-shrink: 0;
 }
@@ -166,7 +216,7 @@ input[type="range"] {
   display: block;
 }
 
-/* Sound select row: dropdown + replay button side by side */
+/* Sound select row */
 .popup-sound-select-row {
   display: flex;
   align-items: center;
@@ -181,12 +231,18 @@ input[type="range"] {
   width: 100%;
   font-size: 12px;
   padding: 5px 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
+  border: 1px solid var(--ext-n300);
+  border-radius: var(--ext-radius-sm);
+  background: var(--ext-surface);
   font-family: inherit;
-  color: #333;
+  color: var(--ext-n900);
   cursor: pointer;
+  outline: none;
+}
+
+.popup-select:focus-visible {
+  border-color: var(--ext-accent);
+  box-shadow: 0 0 0 2px var(--ext-accent-bg);
 }
 
 /* Replay button */
@@ -195,39 +251,51 @@ input[type="range"] {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
-  color: #1a5c38;
+  border: 1px solid var(--ext-n200);
+  border-radius: var(--ext-radius-sm);
+  background: var(--ext-surface);
+  color: var(--ext-n500);
   font-size: 10px;
   font-family: inherit;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s;
+  transition: background .15s, color .15s, border-color .15s;
 }
 
 .popup-sound-replay:hover {
-  background: #1a5c38;
+  background: var(--ext-accent);
   color: #fff;
-  border-color: #1a5c38;
+  border-color: var(--ext-accent);
 }
 
-/* Threshold amount */
+.popup-sound-replay:focus-visible {
+  outline: 2px solid var(--ext-accent);
+  outline-offset: 2px;
+}
+
+/* ── Threshold amount ── */
 .popup-amount {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 2px 8px;
+  border: 1px solid var(--ext-n200);
+  border-radius: var(--ext-radius-sm);
+  padding: 3px 8px;
   flex-shrink: 0;
+  background: var(--ext-surface);
+  transition: border-color .15s;
+}
+
+.popup-amount:focus-within {
+  border-color: var(--ext-accent);
+  box-shadow: 0 0 0 2px var(--ext-accent-bg);
 }
 
 .popup-amount-sign {
   font-size: 12px;
-  color: #666;
+  color: var(--ext-n500);
 }
 
 .popup-amount-input {
@@ -237,7 +305,7 @@ input[type="range"] {
   font-size: 12px;
   text-align: right;
   font-family: inherit;
-  color: #333;
+  color: var(--ext-n900);
   background: transparent;
 }
 
@@ -251,17 +319,18 @@ input[type="range"] {
   -moz-appearance: textfield;
 }
 
+/* ── Divider ── */
 .popup-divider {
   height: 1px;
-  background: #e0e0e0;
-  margin: 2px 0 12px;
+  background: var(--ext-n200);
+  margin: 4px 0 14px;
 }
 
-/* Tag-filter row: four compact toggles side by side */
+/* ── Tag-filter block — four compact toggles ── */
 .popup-tag-block {
   display: flex;
   gap: 4px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .popup-tag-filter {
@@ -269,56 +338,60 @@ input[type="range"] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .popup-tag-label {
   font-size: 10px;
-  color: #666;
+  color: var(--ext-n500);
   text-align: center;
   line-height: 1.2;
   cursor: pointer;
   user-select: none;
 }
 
-/* Small toggle variant (30×16) used for tag filters */
+/* Small toggle — 32×18, 14px knob, used for tag filters */
 .toggle-switch--sm {
-  width: 30px;
-  height: 16px;
+  width: 32px;
+  height: 18px;
 }
 
 .toggle-switch--sm .toggle-track::after {
-  width: 10px;
-  height: 10px;
-  top: 3px;
-  left: 3px;
+  width: 14px;
+  height: 14px;
+  top: 2px;
+  left: 2px;
 }
 
 .toggle-switch--sm input:checked + .toggle-track::after {
   transform: translateX(14px);
 }
 
-/* Footer — bottom-left reset link */
+/* ── Footer — bottom-left reset link ── */
 .popup-footer {
   display: flex;
   justify-content: flex-start;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
-/* Reset — muted text link, not a prominent control */
 .popup-reset {
   background: none;
   border: none;
   padding: 0;
   font-size: 11px;
   font-family: inherit;
-  color: #aaa;
+  color: var(--ext-n400);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
-  transition: color 0.15s;
+  transition: color .15s;
 }
 
 .popup-reset:hover {
-  color: #666;
+  color: var(--ext-n700);
+}
+
+.popup-reset:focus-visible {
+  outline: 2px solid var(--ext-accent);
+  outline-offset: 2px;
 }

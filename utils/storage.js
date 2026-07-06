@@ -1,6 +1,6 @@
 const STORAGE_KEYS = {
-  SPEED:              'refreshSpeedSeconds',
-  RUNNING:            'isRunning',
+  SPEED:              'refreshSpeedSeconds',  // legacy — no longer written (moved to tabState); kept so Reset cleans old installs
+  RUNNING:            'isRunning',            // legacy — no longer written (moved to tabState); kept so Reset cleans old installs
   AUTO_OPEN:          'autoOpenTopNew',
   NIGHT_MODE:         'nightMode',
   TAB_ALERT:          'tabAlert',
@@ -13,7 +13,7 @@ const STORAGE_KEYS = {
   HIDE_PAST_BOOK:     'hidePastBook',
   SURGE_ENABLED:      'surgeEnabled',
   SURGE_THRESHOLD:    'surgeThreshold',
-  PRICE_HISTORY:      'priceHistory'
+  PRICE_HISTORY:      'priceHistory'           // legacy — no longer written (moved to tabState); kept so Reset cleans old installs
 };
 
 const storage = {

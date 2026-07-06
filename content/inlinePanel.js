@@ -2,9 +2,9 @@
 // our own collapsible segmented summary panel injected below the clicked load card.
 // NO clicks on Amazon elements, NO booking, NO hiding or modifying the native sheet.
 
-var PANEL_ID        = 'ext-inline-panel';
-var SHEET_SELECTOR  = '#selected-work-sheet';
-var currentPanelCard = null; // tracks which card the currently visible panel belongs to
+var PANEL_ID         = 'ext-inline-panel';
+var SHEET_SELECTOR   = '#selected-work-sheet';
+var currentPanelCard = null; // owned by showInlinePanel (set on success) and removeInlinePanel (clear)
 
 function injectPanelStyle() {
   if (document.getElementById('ext-inline-panel-style')) return;
@@ -12,21 +12,21 @@ function injectPanelStyle() {
   style.id = 'ext-inline-panel-style';
   style.textContent =
     '.ext-inline-panel{' +
-      'border:1px solid #d5d9d9;border-radius:4px;margin:0 0 12px 0;' +
-      'font-family:Arial,sans-serif;font-size:13px;background:#fff;overflow:hidden;' +
+      'border:1px solid var(--ext-n200);border-radius:4px;margin:0 0 12px 0;' +
+      'font-family:Arial,sans-serif;font-size:13px;background:var(--ext-surface);overflow:hidden;' +
     '}' +
     '.ext-inline-panel__header{' +
-      'background:rgb(182,227,255);color:#042C53;padding:8px 14px;' +
+      'background:var(--ext-accent-bg);color:var(--ext-accent-text);padding:8px 14px;' +
       'display:flex;gap:14px;align-items:center;font-size:12px;' +
     '}' +
     '.ext-inline-panel__header .ext-payout{' +
       'margin-left:auto;font-weight:bold;' +
     '}' +
     '.ext-seg-header{' +
-      'background:#f0f2f2;border-top:1px solid #e7e7e7;padding:10px 14px;' +
+      'background:var(--ext-n100);border-top:1px solid var(--ext-n200);padding:10px 14px;' +
       'display:grid;grid-template-columns:40px minmax(0,3fr) 1.4fr 1fr 1fr 32px;' +
       'gap:0;align-items:center;' +
-      'font-size:12px;color:#565959;cursor:pointer;user-select:none;' +
+      'font-size:12px;color:var(--ext-n700);cursor:pointer;user-select:none;' +
     '}' +
     '.ext-seg-header > span{padding:0 8px;}' +
     '.ext-seg-route{min-width:0;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;}' +
@@ -38,12 +38,12 @@ function injectPanelStyle() {
       'font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;' +
       'overflow-wrap:break-word;word-break:break-word;min-width:0;text-align:center;' +
     '}' +
-    '.ext-route-arrow{font-size:1.15em;font-weight:700;color:#1a5c38;margin:0 0.35em;}' +
-    '.ext-seg-dist{color:#878787;font-size:11px;text-align:center;}' +
-    '.ext-seg-action{text-align:center;font-size:11px;color:#565959;}' +
+    '.ext-route-arrow{font-size:1.15em;font-weight:700;color:var(--ext-n400);margin:0 0.35em;}' +
+    '.ext-seg-dist{color:var(--ext-n500);font-size:11px;text-align:center;}' +
+    '.ext-seg-action{text-align:center;font-size:11px;color:var(--ext-n700);}' +
     '.ext-seg-status{text-align:center;font-size:11px;}' +
-    '.ext-seg-loaded{color:#1a5c38;font-weight:500;}' +
-    '.ext-seg-empty{color:#878787;}' +
+    '.ext-seg-loaded{color:var(--ext-success);font-weight:500;}' +
+    '.ext-seg-empty{color:var(--ext-n500);}' +
     '.ext-seg-header .ext-seg-title{display:flex;align-items:center;justify-content:center;padding:0;}' +
     '.ext-seg-header .ext-seg-arrow{transition:transform .15s;text-align:center;padding:0 4px;}' +
     '.ext-seg-header.ext-open .ext-seg-arrow{transform:rotate(180deg);}' +
@@ -55,51 +55,73 @@ function injectPanelStyle() {
     '.ext-inline-panel__table th:nth-child(3),.ext-inline-panel__table td:nth-child(3){width:20%;}' +
     '.ext-inline-panel__table th:nth-child(4),.ext-inline-panel__table td:nth-child(4){width:20%;}' +
     '.ext-inline-panel__table th{' +
-      'text-align:left;font-size:11px;color:#565959;font-weight:bold;' +
-      'padding:8px 14px;border-bottom:1px solid #e7e7e7;' +
+      'text-align:left;font-size:11px;color:var(--ext-n500);font-weight:bold;' +
+      'padding:8px 14px;border-bottom:1px solid var(--ext-n200);' +
     '}' +
     '.ext-inline-panel__table td{' +
-      'padding:10px 14px;border-bottom:1px solid #f0f0f0;vertical-align:top;word-break:break-word;' +
+      'padding:10px 14px;border-bottom:1px solid var(--ext-n100);vertical-align:top;word-break:break-word;' +
     '}' +
     '.ext-stop-num{' +
       'display:inline-flex;width:18px;height:18px;border-radius:50%;' +
-      'background:#185FA5;color:#fff;font-size:11px;' +
+      'background:var(--ext-accent-bg);color:var(--ext-accent-text);font-size:11px;' +
       'align-items:center;justify-content:center;margin-right:8px;' +
     '}' +
     '.ext-seg-title .ext-stop-num{margin-right:0;}' +
-    '.ext-stop-addr{color:#565959;font-size:12px;}' +
+    '.ext-stop-addr{color:var(--ext-n500);font-size:12px;}' +
     '.ext-dot-loaded{' +
       'display:inline-block;width:11px;height:11px;border-radius:50%;' +
-      'background:#000;margin-right:6px;vertical-align:middle;' +
+      'background:var(--ext-n900);margin-right:6px;vertical-align:middle;' +
     '}' +
     '.ext-dot-empty{' +
       'display:inline-block;width:11px;height:11px;border-radius:50%;' +
-      'border:1.5px solid #000;margin-right:6px;vertical-align:middle;' +
+      'border:1.5px solid var(--ext-n900);margin-right:6px;vertical-align:middle;' +
     '}' +
     '.ext-action-bar{' +
-      'border-top:1px solid #e7e7e7;padding:5px 10px;' +
-      'display:flex;gap:4px;background:#f8f9f9;' +
+      'border-top:1px solid var(--ext-n200);padding:5px 10px;' +
+      'display:flex;gap:4px;background:var(--ext-n100);' +
     '}' +
     '.ext-action-btn{' +
       'width:28px;height:28px;border:none;background:none;border-radius:4px;' +
-      'cursor:pointer;color:#767676;display:inline-flex;align-items:center;' +
+      'cursor:pointer;color:var(--ext-n400);display:inline-flex;align-items:center;' +
       'justify-content:center;padding:0;transition:background .15s,color .15s;' +
     '}' +
-    '.ext-action-btn:hover{background:rgba(0,0,0,.07);color:#232f3e;}' +
+    '.ext-action-btn:hover{background:var(--ext-n200);color:var(--ext-n900);}' +
+    '.ext-action-btn:focus-visible{outline:2px solid var(--ext-accent);outline-offset:2px;}' +
     '.ext-action-btn svg{width:15px;height:15px;display:block;}';
   document.head.appendChild(style);
 }
 
-// Polls until Amazon's native sheet has rendered segments, then calls callback.
-// Fires as soon as ready; falls back after 1500ms regardless.
-function waitForSheet(callback) {
-  var POLL_MS  = 50;
-  var MAX_MS   = 1500;
-  var elapsed  = 0;
+// Returns a cheap string fingerprint of the currently open detail sheet.
+// Composed of payout text, expander count, and first stop label — enough to detect
+// when Amazon has replaced the previous card's sheet with the new card's sheet.
+function sheetFingerprint(sheet) {
+  var payoutEl    = sheet.querySelector('.css-6hcxnp');
+  var payout      = payoutEl ? payoutEl.textContent : '';
+  var expanders   = sheet.querySelectorAll('.load-expander').length;
+  var firstNameEl = sheet.querySelector('.css-424exj');
+  var firstName   = firstNameEl ? firstNameEl.textContent : '';
+  return payout + '|' + expanders + '|' + firstName;
+}
+
+// Polls until Amazon's native sheet has rendered segments AND its fingerprint has changed
+// from prevFingerprint (when provided — guards against reading the previous card's stale sheet).
+// prevFingerprint is null/undefined when no sheet was open before clicking; in that case any
+// sheet with .load-expander is accepted immediately.
+// Hard timeout: 1500ms — callback fires regardless; downstream handles null/stale data.
+function waitForSheet(callback, prevFingerprint) {
+  var POLL_MS = 50;
+  var MAX_MS  = 1500;
+  var elapsed = 0;
   var interval = setInterval(function () {
     elapsed += POLL_MS;
-    var sheet = document.querySelector(SHEET_SELECTOR);
-    var ready = sheet && sheet.querySelector('.load-expander');
+    var sheet       = document.querySelector(SHEET_SELECTOR);
+    var hasExpander = sheet && sheet.querySelector('.load-expander');
+    var ready;
+    if (prevFingerprint == null) {
+      ready = !!hasExpander;
+    } else {
+      ready = !!(hasExpander && sheetFingerprint(sheet) !== prevFingerprint);
+    }
     if (ready || elapsed >= MAX_MS) {
       clearInterval(interval);
       callback();
@@ -201,7 +223,14 @@ function readSheetData() {
 
     // Segments — one per .load-expander
     var loadExpanders = sheet.querySelectorAll('.load-expander');
-    var segments      = [];
+
+    // Selector-drift alarm: .load-expander is a non-hashed class (stable); its absence
+    // while the sheet exists may indicate Amazon changed the DOM structure.
+    if (loadExpanders.length === 0) {
+      logger.warn('inlinePanel', 'SELECTOR DRIFT SUSPECTED: sheet present but no .load-expander found — Amazon may have rebuilt CSS classes or DOM structure');
+    }
+
+    var segments = [];
 
     loadExpanders.forEach(function (expander) {
       // Segment header (id="#expanded-header" is reused; query within this expander)
@@ -287,19 +316,36 @@ function readSheetData() {
       });
     });
 
-    // Assign global stop numbers.
-    // A multi-stop route is one continuous sequence: stop 1, 2, 3, … N+1.
-    // Adjacent segments share a boundary stop: segment N covers global stops (N+1) and (N+2).
-    // Stop at position k within segment N → global number N+1+k.
-    // Example (3 segments / 4 stops):
+    // Selector-drift alarm: if segments were found but every one has 0 stops AND
+    // empty fromTo, all the hashed css- class selectors likely returned nothing.
+    if (segments.length > 0) {
+      var allSegmentsEmpty = segments.every(function (seg) {
+        return seg.stops.length === 0 && seg.fromTo.trim() === '→';
+      });
+      if (allSegmentsEmpty) {
+        logger.warn('inlinePanel', 'SELECTOR DRIFT SUSPECTED: sheet present but all hashed selectors returned empty — Amazon may have rebuilt CSS classes');
+      }
+    }
+
+    // Assign global stop numbers using a cumulative counter.
+    // Boundary stops (first stop of each non-first segment, n>0 && sn===0) share
+    // the previous segment's last number — counter is NOT advanced for them.
+    // Correct for segments with any stop count (old per-segment formula assumed exactly 2).
+    // Example (3 segments × 2 stops → 1,2 / 2,3 / 3,4):
     //   seg 0: stops[0].num="1"  stops[1].num="2"
     //   seg 1: stops[0].num="2"  stops[1].num="3"   ← 2 shared with seg 0 end
     //   seg 2: stops[0].num="3"  stops[1].num="4"   ← 3 shared with seg 1 end
+    var stopCounter = 1;
     for (var n = 0; n < segments.length; n++) {
       var segStops = segments[n].stops;
-      var baseNum  = n + 1;
       for (var sn = 0; sn < segStops.length; sn++) {
-        segStops[sn].num = String(baseNum + sn);
+        if (n > 0 && sn === 0) {
+          // Boundary stop: shares the previous segment's last number (counter - 1).
+          segStops[sn].num = String(stopCounter - 1);
+        } else {
+          segStops[sn].num = String(stopCounter);
+          stopCounter++;
+        }
       }
     }
 
@@ -394,15 +440,21 @@ function buildSegmentTable(segment) {
 function flashActionSuccess(btn) {
   logger.log('inlinePanel', 'flashActionSuccess called');
   var original      = btn.innerHTML;
-  var originalTitle = btn.getAttribute('title');
+  var originalTitle = btn.getAttribute('title'); // null when attribute absent
   btn.innerHTML =
-    '<svg viewBox="0 0 16 16" fill="none" stroke="#1a5c38"' +
+    '<svg viewBox="0 0 16 16" fill="none" stroke="#157347"' +
     ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
     ' aria-hidden="true"><path d="M2 8l4 4 8-8"/></svg>';
   btn.setAttribute('title', 'Copied!');
   setTimeout(function () {
     btn.innerHTML = original;
-    btn.setAttribute('title', originalTitle);
+    // Restore title exactly: removeAttribute when the original had none, to avoid
+    // setAttribute(title, null) writing the string "null".
+    if (originalTitle === null) {
+      btn.removeAttribute('title');
+    } else {
+      btn.setAttribute('title', originalTitle);
+    }
   }, 1100);
 }
 
@@ -543,6 +595,7 @@ function buildPanelElement(data) {
 
       var titleSpan = document.createElement('span');
       titleSpan.className = 'ext-seg-title';
+      // Use stops[0].num when stops exist; fall back to formula only when stops are empty.
       var originNum   = segment.stops.length > 0 ? segment.stops[0].num : String(i + 1);
       var originNumEl = document.createElement('span');
       originNumEl.className  = 'ext-stop-num';
@@ -568,8 +621,8 @@ function buildPanelElement(data) {
 
       var destEl = document.createElement('span');
       destEl.className  = 'ext-route-dest';
-      // Show destination global stop# as a circle matching the header circles.
-      var destNum   = segment.stops.length > 1
+      // Use last stop's num when stops exist; fall back to formula only when stops are empty.
+      var destNum   = segment.stops.length > 0
         ? segment.stops[segment.stops.length - 1].num
         : String(i + 2);
       var destNumEl = document.createElement('span');
@@ -652,6 +705,14 @@ function showInlinePanel(cardElement) {
     return false;
   }
 
+  // Phase 2 merge — store the detail struct under this load's loadId.
+  // readSheetData() does not know the loadId; resolve it the same way parseOneCard() does.
+  var sheetLoadIdEl = cardElement.querySelector('div[id]');
+  var sheetLoadId   = sheetLoadIdEl ? sheetLoadIdEl.id : null;
+  if (sheetLoadId) {
+    loadStore.mergeLoadUnit(sheetLoadId, { detail: data });
+  }
+
   var panel = buildPanelElement(data);
   panel.id  = PANEL_ID;
 
@@ -676,6 +737,10 @@ function showInlinePanel(cardElement) {
 
   cardElement.parentNode.insertBefore(panel, cardElement.nextSibling);
 
+  // Update currentPanelCard here so both auto-open and manual paths stay in sync.
+  // Ownership is here (set) and in removeInlinePanel (clear); initManualToggle no longer touches it.
+  currentPanelCard = cardElement;
+
   logger.log('inlinePanel', 'panel rendered', { segments: data.segments.length });
   return true;
 }
@@ -683,6 +748,7 @@ function showInlinePanel(cardElement) {
 function removeInlinePanel() {
   var old = document.getElementById(PANEL_ID);
   if (old) old.remove();
+  currentPanelCard = null; // clear ownership so toggle-off state stays consistent
 }
 
 function initManualToggle() {
@@ -696,15 +762,20 @@ function initManualToggle() {
     // SAFETY: never react to clicks on forbidden elements (Book buttons etc.)
     if (isForbiddenElement(ev.target)) return;
 
-    // Toggle off: clicking the same card while its panel is open removes it
+    // Toggle off: clicking the same card while its panel is open removes it.
+    // Works for both manually-opened and auto-opened panels (currentPanelCard is now
+    // set by showInlinePanel, not just by this handler).
     if (currentPanelCard === card && document.getElementById(PANEL_ID)) {
       removeInlinePanel();
-      currentPanelCard = null;
       return;
     }
 
-    // Toggle on: wait for Amazon's native sheet to render segments, then show our panel.
-    // Also stop auto-refresh so the dispatcher can review the card without interruption.
+    // Toggle on: capture a fingerprint of the currently open sheet BEFORE polling starts.
+    // waitForSheet will only fire the callback once the sheet has changed (i.e., Amazon has
+    // replaced the previous card's sheet with the new one), preventing stale-sheet renders.
+    var prevSheet       = document.querySelector(SHEET_SELECTOR);
+    var prevFingerprint = prevSheet ? sheetFingerprint(prevSheet) : null;
+
     waitForSheet(function () {
       try {
         tabState.set('running', false);
@@ -713,12 +784,12 @@ function initManualToggle() {
         logger.error('inlinePanel', 'tabState stop failed on manual card open', { error: e });
       }
       try {
-        var ok = showInlinePanel(card);
-        if (ok) { currentPanelCard = card; }
+        showInlinePanel(card);
+        // currentPanelCard ownership has moved to showInlinePanel — no assignment here
       } catch (e) {
         logger.warn('inlinePanel', 'manual toggle render failed', { error: e });
       }
-    });
+    }, prevFingerprint);
   });
 
   logger.log('inlinePanel', 'manual toggle initialized');

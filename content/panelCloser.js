@@ -26,10 +26,39 @@ function findDetailCloseButton() {
       }
     }
 
+    // Strategy 2: collect ALL icon-only buttons (no text, has SVG child), then prefer
+    // the one closest to the top of the sheet (within 80px of sheet.rect.top) — most likely
+    // to be the close/X button. Fall back to the first candidate (previous behavior).
     var allSheetBtns = sheet.querySelectorAll('button');
+    var candidates = [];
     for (var j = 0; j < allSheetBtns.length; j++) {
-      var btn = allSheetBtns[j];
-      if (!btn.textContent.trim() && btn.querySelector('svg')) return btn;
+      var candidate = allSheetBtns[j];
+      if (!candidate.textContent.trim() && candidate.querySelector('svg')) {
+        candidates.push(candidate);
+      }
+    }
+    if (candidates.length > 0) {
+      var sheetRect = sheet.getBoundingClientRect();
+      var topMatch  = null;
+      var topMatchIdx = -1;
+      for (var k = 0; k < candidates.length; k++) {
+        var btnRect = candidates[k].getBoundingClientRect();
+        if (btnRect.top - sheetRect.top <= 80) {
+          topMatch    = candidates[k];
+          topMatchIdx = k;
+          break;
+        }
+      }
+      if (topMatch) {
+        logger.log('panelCloser', 'findDetailCloseButton: strategy 2 top-area match', {
+          candidateIndex: topMatchIdx, totalCandidates: candidates.length
+        });
+        return topMatch;
+      }
+      logger.log('panelCloser', 'findDetailCloseButton: strategy 2 first-candidate fallback', {
+        totalCandidates: candidates.length
+      });
+      return candidates[0];
     }
 
     return null;

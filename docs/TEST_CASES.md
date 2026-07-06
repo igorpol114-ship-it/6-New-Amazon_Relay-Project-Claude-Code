@@ -49,18 +49,16 @@ Two relay.amazon.com tabs open simultaneously. All cases verified with both tabs
 7. **Expected:** Tab B does NOT trigger (80 < 100).
 8. Open chrome://extensions DevTools → `chrome.storage.local.get('priceHistory')` should return `undefined` or `{}` (price history is no longer stored there).
 
-### TC-TAB-5 — Memory-watchdog reload in Tab A auto-resumes; Tab B unaffected
-1. Start both tabs.
-2. Simulate reload in Tab A: run in Tab A console:
-   ```javascript
-   sessionStorage.setItem('ext_resume_after_memory_reload', '1');
-   location.reload();
-   ```
+### TC-TAB-5 — Manual memory-indicator reload: loop starts paused, settings restored
+1. Set Tab A slider to 3s and surge threshold to $75. Start the loop.
+2. Click the `ext-memory-indicator` dot in the Tab A sidebar (or press Enter/Space on it).
 3. **Expected after reload:**
-   - Tab A resumes loop automatically (pill shows running).
-   - Tab A speed matches the value set before reload.
-   - Tab A surge threshold matches the value set before reload.
+   - Tab A loop starts **paused** (pill shows paused, scanline is still).
+   - Tab A slider still shows 3s (restored from sessionStorage via `tabState.init()`).
+   - Tab A surge threshold still shows $75 (same mechanism).
+   - Tab A does NOT auto-resume — the dispatcher must press play manually.
    - Tab B is unchanged throughout.
+4. **Confirm no `ext_resume_after_memory_reload` flag:** in Tab A console before clicking the indicator, verify `sessionStorage.getItem('ext_resume_after_memory_reload')` returns `null`. After reload, same check — still `null`.
 
 ### TC-TAB-6 — Global settings apply to both tabs
 1. In popup: toggle Night Mode on.
@@ -84,6 +82,20 @@ Two relay.amazon.com tabs open simultaneously. All cases verified with both tabs
 3. **Expected:** `#selected-work-sheet` opens AND loop stops in this tab (pill shows paused, scanline stops).
 4. **Regression check (extension auto-open):** let the loop find a new load and auto-open it — loop ALSO stops (via content.js existing logic), inline panel shows. No double-stop error in logs.
 5. **Per-tab isolation:** open two tabs. Stop loop in Tab A via manual card click. Tab B should continue running unaffected.
+
+### TC-PANEL-4 — Clicking card B while card A's sheet is open shows B's data, not A's
+1. Click card A. Wait for the inline panel to appear under card A (showing A's route).
+2. While A's sheet (`#selected-work-sheet`) is still open, click card B (a different card).
+3. **Expected:** the inline panel moves under card B and displays B's route and stops — NOT A's data.
+4. **Confirm in logs:** no `waitForSheet` callback fires until the fingerprint changes (payout, expander count, or first stop label changed from A to B). If the timeout fires instead (1500ms), readSheetData reads B's already-loaded sheet.
+5. **Regression check:** if A and B happen to have identical payout/expander count/first stop (unlikely), the timeout path still runs and should not render A's data if B's sheet has loaded.
+
+### TC-PANEL-5 — Auto-opened panel can be toggle-closed with one click; old card does not close new panel
+1. Start loop. Let auto-open fire on card X. Confirm inline panel appears under card X.
+2. **Expected:** `currentPanelCard` now points to card X (set by `showInlinePanel`).
+3. Click card X once. **Expected:** panel under card X is removed. Loop stays paused (already paused by auto-stop).
+4. Now start loop again. Auto-open fires on card Y (a different card). Panel appears under Y.
+5. Click card X (the PREVIOUSLY opened card). **Expected:** nothing happens — card X's click falls through to the toggle-on path (waitForSheet) because `currentPanelCard === cardY ≠ cardX`. Card Y's panel is NOT removed.
 
 ### TC-PANEL-3 — Toggle-off card click does not double-stop
 1. Start loop. Manually click a card (loop stops, panel appears — TC-PANEL-2 satisfied).
@@ -117,9 +129,11 @@ Two relay.amazon.com tabs open simultaneously. All cases verified with both tabs
 3. Change a filter. **Expected:** no pipeline pass fires (observer disconnected or running-gated).
 4. Resume loop. **Expected:** observer reconnects; filter change again triggers detection.
 
-### TC-OBS-5 — Observer stops on memory reload
-1. Simulate memory reload: `sessionStorage.setItem('ext_resume_after_memory_reload','1'); location.reload()`.
-2. **Expected after reload:** extension auto-resumes (observer + timer both start). No stale observer from before reload fires callbacks.
+### TC-OBS-5 — Observer is clean after manual memory-indicator reload
+1. Click `ext-memory-indicator` in the sidebar to trigger a reload (no sessionStorage flag is set).
+2. **Expected after reload:** loop starts paused; observer is NOT connected (observer connects only when loop is running). No stale callbacks from before reload.
+3. Press play. **Expected:** observer connects and begins watching for DOM changes normally.
+4. Confirm no `ext_resume_after_memory_reload` key exists in sessionStorage at any point.
 
 ---
 
@@ -134,6 +148,16 @@ Two relay.amazon.com tabs open simultaneously. All cases verified with both tabs
    - Segment 2 rows: circles "3" and "4" (3 is shared with segment 1's destination).
 4. **Regression check (single-segment load):** circles "1" and "2" appear.
 
+### TC-STOP-3 — Segment with 3 stops: continuous numbering, no duplicates in next segment
+1. Find or simulate a load with a segment that has 3 stops (e.g., pickup + mid-stop + delivery).
+2. Open the inline panel. Expand all segments.
+3. **Expected stop numbering (example: seg0=3 stops, seg1=2 stops, seg2=2 stops):**
+   - Segment 0: stop circles "1", "2", "3"
+   - Segment 1: stop circles "3", "4"  ← "3" shared with seg 0's last stop
+   - Segment 2: stop circles "4", "5"  ← "4" shared with seg 1's last stop
+4. No duplicate number appears more than twice (boundary stops only).
+5. **Regression (2-stop segments):** original documented example still produces 1,2/2,3/3,4 for three 2-stop segments.
+
 ### TC-STOP-2 — Shared stop has identical number in both segments
 1. Open a 3-segment load's inline panel.
 2. Expand segment 0 and note the destination stop number (e.g., "XBN6 → 2").
@@ -142,8 +166,75 @@ Two relay.amazon.com tabs open simultaneously. All cases verified with both tabs
 
 ---
 
+### TC-OPEN-1 — Auto-open targets highest-paying new load, not DOM-first
+1. Arrange the load board so card A ($250, first in DOM) and card B ($480, second in DOM) both appear as new loads in the same tick.
+2. Start the loop. When the tick runs and detects both, **Expected:**
+   - Both cards receive `.ext-new-load` highlight (order irrelevant).
+   - The detail panel opens for card B ($480 — higher payout), not card A.
+   - The inline panel renders under card B.
+3. Confirm in logs: `runDetectionPipeline: inline panel shown` with `topPayout: "$480.xx"` (or the actual higher value).
+
+### TC-OPEN-2 — Card detach during 250ms settle: no click fires, no error
+1. Start loop. When auto-open fires (a new load is found), immediately change a filter in Amazon's filter panel so that Amazon React unmounts and remounts the load list within the 250ms scroll-settle window.
+2. **Expected:** console shows `detailOpener: element detached during scroll settle — NOT clicking`. No `.click()` fires. No console error. Loop is already paused (auto-stopped before the click was scheduled).
+3. **Regression check:** normal tick with stable DOM — card remains attached, click fires as expected.
+
+### TC-PARSE-1 — Highlighted card produces no null-loadId duplicate
+1. Open the load board and let Amazon highlight a card (`.wo-card-header--highlighted` applied to an inner header inside a `.load-card`).
+2. Run `__EXT_DEBUG.getLoads()` in the console.
+3. **Expected:** each load appears exactly once in the returned array. No entry with `loadId: null` is present. No `loadParser: failed to parse card` error appears in the console for the highlighted card.
+4. Confirm in logs: if any nested elements were filtered, `dropped nested card matches` debug line appears with `dropped: N` (N ≥ 1).
+
+### TC-LOOP-1 — Rapid play→pause→play does not start parallel loops
+1. Start loop (play). Immediately click pause then play again, all within 1 second.
+2. **Expected:** exactly one loop chain runs. Only one refresh fires per interval. Only one sound plays per new load batch. Pause fully stops the loop (no "ghost" tick continues).
+3. **Confirm in logs:** `startOrchestrator: loop already active — ignoring` appears on the second play while the first tick is still in-flight. `orchLoopActive` is set before the first tick, so the second call hits the guard immediately.
+
+### TC-STORE-1 — LoadUnit detail data survives transient empty render during filter change
+1. Start loop. Let auto-open fire for a load — this triggers Phase 2 (`showInlinePanel`), which merges `detail` into the LoadUnit. Confirm via console: `__EXT_DEBUG.getLoadUnits()` shows the load with a non-null `detail` field.
+2. Change an Amazon search filter (e.g., radius slider). Amazon React unmounts and remounts the load list, which may briefly show 0 cards.
+3. Change the filter back to restore the same load.
+4. **Expected:** `__EXT_DEBUG.getLoadUnits()` still shows the load with its `detail` field intact. The transient 0-card render did NOT trigger `pruneLoadUnits` (logs show "skipping pruneLoadUnits (transient empty render)").
+5. **Regression check:** when a load genuinely disappears (filter excludes it permanently), it IS eventually pruned — confirmed after the next parse that returns ≥1 card.
+
 ### TC-OBS-6 — Back-to-back observer + timer tick: no duplicate alert
 1. Start loop with timer interval = 2s.
 2. At t=0, a filter change triggers the observer; observer runs at t=200ms (debounce). Finds 0 new loads.
 3. At t=2000ms, timer tick runs. Also finds 0 new loads.
 4. **Expected:** only ONE detection pass' worth of behaviour — no duplicate sound, no double highlight. `detectNewLoads` idempotency confirmed.
+
+---
+
+## Memory indicator (2026-06-30)
+
+## Popup / sound (2026-07-03)
+
+### TC-POPUP-1 — Auto-Open OFF: highlights and sound fire, but no card opens
+1. Open popup → toggle **Auto-Open Top Load** OFF.
+2. Start loop. Wait for a new load to appear.
+3. **Expected:**
+   - Cards with `.ext-new-load` highlight appear (highlighting always fires).
+   - Sound plays (alert always fires).
+   - Tab title flashes if Tab Alert is ON.
+   - Loop auto-stops (tabState running → false).
+   - NO detail card opens (`openTopNewLoad` is not called).
+   - NO inline panel renders under any card.
+4. **Reset check:** open popup, click Reset to defaults → Auto-Open toggle returns to **ON** (true-default).
+
+### TC-SOUND-1 — Popup preview and in-page alert produce identical tones for the same soundId
+1. In the popup, select a sound (e.g. "Fanfare") and click the replay button.
+2. Let the extension play an in-page alert for the same soundId (manually trigger via `__EXT_DEBUG.playAlert()` in the content console, with `soundId = 'fanfare'`).
+3. **Expected:** the two sounds are audibly identical — same pitch sequence, same timing, same waveform. Both use `SOUND_DEFS['fanfare']` from the shared `utils/soundDefs.js` global.
+4. Repeat for two more sounds (e.g. "Alarm siren" and "Rising sweep") to confirm no divergence.
+
+---
+
+## Memory indicator (2026-06-30)
+
+### TC-MEM-1 — Indicator polls while paused, click reloads, tooltip warns about filters
+1. Load extension. Keep loop **paused** (do not press play).
+2. Wait ~7s. **Expected:** `ext-memory-indicator` dot color updates (reflecting current heap ratio), with no ticker/sound — indicator polls independently of loop state.
+3. Hover (or focus) the `ext-memory-info` "i" icon. **Expected:** `ext-memory-tooltip` appears and text includes a warning that Amazon search filters will need to be re-entered after reload (via `textContent`; no innerHTML).
+4. Click the `ext-memory-indicator` dot (or press Enter/Space). **Expected:** page reloads immediately. No confirmation dialog. No sessionStorage flag set before reload.
+5. After reload: loop is paused. Speed and surge threshold restored from sessionStorage. Dispatcher presses play manually to resume.
+6. **Regression check (running state):** start the loop and let it run. The dot still updates every ~7s. Clicking it still reloads. The running state is NOT preserved across the reload — loop starts paused after reload regardless.

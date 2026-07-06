@@ -12,27 +12,35 @@ function buildSidebar() {
   style.textContent =
     '#ext-sidebar{' +
       'position:fixed;top:0;left:50%;transform:translateX(-50%);' +
-      'z-index:2147483647;background:#1a5c38;color:#fff;' +
+      'z-index:2147483647;background:var(--ext-bar-bg);color:var(--ext-n900);' +
       'height:40px;padding:0 20px;display:flex;align-items:center;gap:12px;' +
-      'border-radius:0 0 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,.35);' +
+      'border-radius:0 0 8px 8px;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,.14);' +
+      'border-bottom:1px solid var(--ext-n200);' +
       'font-family:Arial,sans-serif;font-size:13px;font-weight:600;' +
       'letter-spacing:.3px;white-space:nowrap;user-select:none;overflow:hidden;' +
-      '--ext-scan-dur:2.8s;' +
     '}' +
     '#ext-sidebar [data-testid="ext-sidebar-title"]{' +
-      'font-size:13px;font-weight:600;' +
+      'font-size:13px;font-weight:600;color:var(--ext-n900);' +
     '}' +
     '#ext-sidebar [data-testid="ext-playpause"]{' +
       'width:48px;height:26px;border-radius:13px;' +
-      'background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);' +
+      'background:var(--ext-n100);border:1px solid var(--ext-n200);' +
       'display:inline-flex;align-items:center;justify-content:center;' +
-      'cursor:pointer;color:#fff;outline:none;transition:background .15s;' +
+      'cursor:pointer;color:var(--ext-n700);outline:none;' +
+      'transition:background .15s,border-color .15s,color .15s;' +
     '}' +
     '#ext-sidebar [data-testid="ext-playpause"]:hover{' +
-      'background:rgba(255,255,255,.28);' +
+      'background:var(--ext-n200);border-color:var(--ext-n300);' +
     '}' +
     '#ext-sidebar [data-testid="ext-playpause"]:focus-visible{' +
-      'box-shadow:0 0 0 2px rgba(255,255,255,.6);' +
+      'box-shadow:0 0 0 2px var(--ext-accent);' +
+    '}' +
+    '#ext-sidebar[data-running="true"] [data-testid="ext-playpause"]{' +
+      'background:var(--ext-accent);border-color:var(--ext-accent);color:#fff;' +
+    '}' +
+    '#ext-sidebar[data-running="true"] [data-testid="ext-playpause"]:hover{' +
+      'background:var(--ext-accent-hover);border-color:var(--ext-accent-hover);' +
     '}' +
     '#ext-sidebar .ext-pp__icon{width:14px;height:14px;display:block;}' +
     '#ext-sidebar .ext-pp__pause{display:none;}' +
@@ -46,10 +54,13 @@ function buildSidebar() {
     '#ext-sidebar[data-running="true"] .ext-scanline{opacity:1;}' +
     '#ext-sidebar .ext-scanline__seg{' +
       'position:absolute;top:0;left:0;height:100%;width:38%;border-radius:2px;' +
-      'background:linear-gradient(90deg,rgba(125,207,142,0),rgba(125,207,142,1),rgba(125,207,142,0));' +
+      'background:linear-gradient(90deg,rgba(26,115,232,0),rgba(26,115,232,.9),rgba(26,115,232,0));' +
     '}' +
     '#ext-sidebar[data-running="true"] .ext-scanline__seg{' +
       'animation:extScan var(--ext-scan-dur) linear infinite;' +
+    '}' +
+    'html.ext-night #ext-sidebar .ext-scanline__seg{' +
+      'background:linear-gradient(90deg,rgba(76,141,255,0),rgba(76,141,255,.9),rgba(76,141,255,0));' +
     '}' +
     '@keyframes extScan{' +
       '0%{transform:translateX(-110%)}' +
@@ -57,35 +68,37 @@ function buildSidebar() {
     '}' +
     '@media (prefers-reduced-motion: reduce){' +
       '#ext-sidebar .ext-scanline__seg{animation:none!important;width:100%;' +
-        'background:rgba(125,207,142,.9);}' +
+        'background:rgba(26,115,232,.9);}' +
+      'html.ext-night #ext-sidebar .ext-scanline__seg{' +
+        'background:rgba(76,141,255,.9);}' +
     '}' +
     '#ext-sidebar [data-testid="ext-slider-speed"]{' +
-      'width:80px;cursor:pointer;accent-color:#7dcf8e;vertical-align:middle;' +
+      'width:80px;cursor:pointer;accent-color:var(--ext-accent);vertical-align:middle;' +
     '}' +
     '#ext-sidebar [data-testid="ext-slider-value"]{' +
-      'font-size:11px;min-width:28px;opacity:.9;' +
+      'font-size:11px;min-width:28px;opacity:.9;color:var(--ext-n700);' +
     '}' +
     '#ext-sidebar [data-testid="ext-memory-indicator"]{' +
       'width:12px;height:12px;border-radius:50%;cursor:pointer;' +
-      'border:1px solid rgba(255,255,255,.4);flex-shrink:0;' +
+      'border:1px solid var(--ext-n300);flex-shrink:0;' +
       'transition:background-color .4s;outline:none;' +
     '}' +
     '#ext-sidebar [data-testid="ext-memory-indicator"]:focus-visible{' +
-      'box-shadow:0 0 0 2px rgba(255,255,255,.6);' +
+      'box-shadow:0 0 0 2px var(--ext-accent);' +
     '}' +
     '#ext-sidebar [data-testid="ext-memory-info"]{' +
       'width:14px;height:14px;border-radius:50%;cursor:help;flex-shrink:0;' +
       'display:inline-flex;align-items:center;justify-content:center;' +
       'font-size:10px;font-weight:700;line-height:1;' +
-      'background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);' +
+      'background:var(--ext-n100);border:1px solid var(--ext-n200);color:var(--ext-n700);' +
       'outline:none;position:relative;' +
     '}' +
     '#ext-sidebar [data-testid="ext-memory-info"]:focus-visible{' +
-      'box-shadow:0 0 0 2px rgba(255,255,255,.6);' +
+      'box-shadow:0 0 0 2px var(--ext-accent);' +
     '}' +
     '#ext-sidebar [data-testid="ext-memory-tooltip"]{' +
       'display:none;position:absolute;top:32px;right:0;width:220px;' +
-      'background:#1a1a1a;color:#fff;font-size:11px;font-weight:400;' +
+      'background:var(--ext-n900);color:var(--ext-bar-bg);font-size:11px;font-weight:400;' +
       'line-height:1.4;padding:8px 10px;border-radius:6px;' +
       'box-shadow:0 2px 10px rgba(0,0,0,.4);white-space:normal;' +
       'letter-spacing:normal;z-index:2147483647;' +
@@ -93,6 +106,36 @@ function buildSidebar() {
     '#ext-sidebar [data-testid="ext-memory-tooltip"].ext-tooltip-visible{' +
       'display:block;' +
     '}' +
+
+    /* ── Dark theme overrides — explicit values override nightMode.js's !important rules ── */
+    'html.ext-night #ext-sidebar{' +
+      'background:#1c1f24 !important;' +
+      'color:#e5edf5 !important;' +
+      'border-bottom-color:rgba(255,255,255,.08) !important;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,.4) !important;' +
+    '}' +
+    'html.ext-night #ext-sidebar [data-testid="ext-sidebar-title"]{color:#e5edf5 !important;}' +
+    'html.ext-night #ext-sidebar [data-testid="ext-playpause"]{' +
+      'background:#23272d !important;border-color:#2c313a !important;color:#b0bcca !important;' +
+    '}' +
+    'html.ext-night #ext-sidebar [data-testid="ext-playpause"]:hover{' +
+      'background:#2c313a !important;border-color:#3a4250 !important;' +
+    '}' +
+    'html.ext-night #ext-sidebar[data-running="true"] [data-testid="ext-playpause"]{' +
+      'background:#4c8dff !important;border-color:#4c8dff !important;color:#fff !important;' +
+    '}' +
+    'html.ext-night #ext-sidebar[data-running="true"] [data-testid="ext-playpause"]:hover{' +
+      'background:#6ba1ff !important;border-color:#6ba1ff !important;' +
+    '}' +
+    'html.ext-night #ext-sidebar [data-testid="ext-slider-value"]{color:#b0bcca !important;}' +
+    'html.ext-night #ext-sidebar [data-testid="ext-memory-indicator"]{border-color:#3a4250 !important;}' +
+    'html.ext-night #ext-sidebar [data-testid="ext-memory-info"]{' +
+      'background:#23272d !important;border-color:#2c313a !important;color:#b0bcca !important;' +
+    '}' +
+    'html.ext-night #ext-sidebar [data-testid="ext-memory-tooltip"]{' +
+      'background:#e5edf5 !important;color:#1c1f24 !important;' +
+    '}' +
+
     'body{padding-top:44px!important;}';
 
   document.head.appendChild(style);
@@ -196,7 +239,7 @@ function buildSidebar() {
   // User intent — writes tabState (single source of truth for this tab).
   // The 'running' subscriber fires reflectRunning synchronously; no direct call needed.
   function toggleRunning() {
-    var nowRunning = container.getAttribute('data-running') !== 'true';
+    var nowRunning = !tabState.get('running');
     tabState.set('running', nowRunning);
     logger.log('sidebar', 'playpause toggled', { running: nowRunning });
   }
@@ -212,7 +255,7 @@ function buildSidebar() {
   var MEMORY_COLOR_GREEN = [46, 160, 67];   // #2ea043
   var MEMORY_COLOR_AMBER = [212, 167, 44];  // #d4a72c
   var MEMORY_COLOR_RED   = [218, 54, 51];   // #da3633
-  var MEMORY_COLOR_NEUTRAL = 'rgba(255,255,255,.3)'; // performance.memory unavailable
+  var MEMORY_COLOR_NEUTRAL = '#8fa1b2'; // n400 — visible on both light and dark bar
 
   function lerpColor(c1, c2, t) {
     var r = Math.round(c1[0] + (c2[0] - c1[0]) * t);
@@ -233,7 +276,7 @@ function buildSidebar() {
   }
 
   function updateMemoryIndicator() {
-    logger.log('sidebar', 'updateMemoryIndicator called');
+    logger.debug('sidebar', 'updateMemoryIndicator called');
     var stats = (typeof getHeapUsageRatio === 'function') ? getHeapUsageRatio() : null;
     if (!stats) {
       memoryIndicator.style.backgroundColor = MEMORY_COLOR_NEUTRAL;

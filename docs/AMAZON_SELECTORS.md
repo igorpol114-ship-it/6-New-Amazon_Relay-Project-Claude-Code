@@ -95,9 +95,7 @@ Self-trigger guard (isExtManagedNode()):
   Returns true for: non-element nodes, id='ext-inline-panel', id/data-testid starting with 'ext-'.
   These are skipped before the filter above runs.
 
-DIAG logs: every callback invocation logs "DIAG callback: fired" with batch size, target,
-and first added/removed class. hasLoadCardChange logs why it returned true. These help confirm
-which case Amazon actually hits. Will be removed in a follow-up once confirmed working.
+DIAG logs removed 2026-06-18 after observer behavior was confirmed; standard logger.log entries remain.
 
 ⚠️ Re-verify if Amazon changes the overall page structure (not just the load list).
 
@@ -117,3 +115,33 @@ If no strategy resolves: log and skip — no click.
 `isForbiddenElement()` is called on the resolved button before every click.
 Implementation: content/panelCloser.js → findDetailCloseButton()
 ⚠️ Re-verify selector if Amazon changes the detail sheet markup.
+
+## Detail sheet content (inlinePanel readSheetData) ⚠ FRAGILE
+
+Verified: 2026-06 (approximate; Amazon rebuilds hashed classes without notice)
+Implementation: content/inlinePanel.js → readSheetData(), parseStopBlock()
+
+**Exception to the no-css-hash rule:** these are hashed `css-XXXX` class names. No stable
+`data-testid`, `aria-*`, or `id` alternative was found for any of them. A selector-drift
+alarm is wired in code (`SELECTOR DRIFT SUSPECTED` warn) to surface breakage immediately.
+
+| Selector | Used for |
+|----------|----------|
+| `#selected-work-sheet` | Sheet container — stable `id`, NOT a hash class |
+| `.load-expander` | One per segment — stable non-hashed class |
+| `.expander-content` | Stop rows container within a segment |
+| `.css-ntd8uw .css-1q48g4q` | Header summary (stopsCount / totalMiles) |
+| `.css-6hcxnp` | Payout text in sheet header |
+| `.css-17jtd1r` | Stop label pair in segment header (from / to) |
+| `.css-424exj` | Stop facility code inside a `.css-17jtd1r` |
+| `.css-14f9df9` | Miles text in segment header |
+| `.css-gudqq2 .css-1cp4is8` | Duration text (bullet-separated) |
+| `.css-zgauvq` | Individual stop block inside `.expander-content` |
+| `.css-w1kk5u` | Address container inside a stop block |
+| `.css-1cbogyo` | Equipment/load-type text inside a stop block |
+| `.scheduled-arrival__time .scheduled-time` | Arrival time — partially stable class |
+| `.scheduled-departure__time .scheduled-time` | Departure time — partially stable class |
+
+⚠️ Re-verify ALL hashed selectors whenever Amazon deploys a CSS rebuild.
+   The drift alarm (`logger.warn 'SELECTOR DRIFT SUSPECTED'`) fires in readSheetData()
+   if the sheet is present but expanders are absent, or if all segments parse empty.

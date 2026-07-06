@@ -1,10 +1,11 @@
 // Stage 13 — neutral-zone click to open load details.
-// This is the SECOND allowed click site in the codebase (see SAFETY.md).
+// One of the three allowed Amazon-DOM click sites (neutral zone) — see docs/SAFETY.md (canonical).
 // Target: inner element of div.load-card body, resolved via elementFromPoint
 //         at a point biased left (30% width) to stay away from the Book button.
 // isForbiddenElement() MUST return false on BOTH the card container AND the
 // resolved target before any .click() is called.
 // NO booking. NO Layout B. ONE card per call only.
+// Caller (runDetectionPipeline) passes payout-sorted loads so newLoads[0] is always highest-paying.
 
 function openTopNewLoad(newLoads) {
   logger.log('detailOpener', 'openTopNewLoad called', { newCount: newLoads ? newLoads.length : 0 });
@@ -56,6 +57,12 @@ function openTopNewLoad(newLoads) {
   }
 
   setTimeout(function () {
+    // Re-validate: React can detach the card during the 250ms scroll settle (e.g., filter change).
+    // A detached element has a zero rect; elementFromPoint(0,0) would click a corner-of-viewport element.
+    if (!document.contains(el)) {
+      logger.warn('detailOpener', 'element detached during scroll settle — NOT clicking', { loadId: load.loadId });
+      return;
+    }
     // Re-read rect after scroll has settled
     var r      = el.getBoundingClientRect();
     var x      = r.left + r.width  * 0.3;

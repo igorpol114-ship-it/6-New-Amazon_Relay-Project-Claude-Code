@@ -13,11 +13,12 @@
 //   trigger a pipeline pass that finds newCount=0 and exits silently.
 //
 // Self-trigger prevention: isExtManagedNode() skips our own surge badges, inline panel,
-//   and other ext-prefixed insertions. Highlighter class changes are attribute mutations —
-//   childList never fires for them.
+//   sidebar, and other ext-prefixed insertions. Highlighter class changes are attribute
+//   mutations — childList never fires for them.
 //
 // Concurrency: _pipelineRunning flag prevents two overlapping observer pipeline runs.
-//   orchTickRunning defers to the tick if it is already mid-run.
+//   orchTickRunning defers to the tick if it is already mid-run; re-arms once (up to 3×)
+//   so DOM changes that arrive during a tick are not silently dropped.
 //
 // Debounce: 200ms — coalesces a React render burst into one detection pass.
 // Running-gated + per-tab via tabState. stopLoadObserver() cancels any pending debounce.
@@ -25,7 +26,9 @@
 var _observer        = null;
 var _debounceTimer   = null;
 var _pipelineRunning = false;
+var _rearmCount      = 0;  // consecutive re-arms while orchTickRunning; reset on successful run
 var OBSERVE_DEBOUNCE_MS = 200;
+var MAX_REARMS          = 3;
 
 // Returns true for DOM nodes the extension inserts itself.
 // Non-element nodes are treated as managed — skip text/comment artefacts.
@@ -33,8 +36,9 @@ function isExtManagedNode(node) {
   if (node.nodeType !== 1) return true;
   if (node.id === 'ext-inline-panel') return true;
   if (node.id && node.id.startsWith('ext-')) return true;
-  // Surge badge: data-testid="ext-surge-badge"
   if (node.dataset && node.dataset.testid && node.dataset.testid.startsWith('ext-')) return true;
+  // Child nodes inserted inside our containers (e.g. icon swap during flashActionSuccess) are also managed.
+  if (node.closest && node.closest('#ext-inline-panel, #ext-sidebar')) return true;
   return false;
 }
 
@@ -56,8 +60,9 @@ function hasExternalChange(mutations) {
   return false;
 }
 
-// Detection pipeline — mirrors orchestratorTick()'s detect→highlight→sound→tabAlert→
-// auto-open→auto-stop path, without the refresh step (the DOM already changed).
+// Detection pipeline for observer-triggered passes. Delegates the actual
+// detect→highlight→sound→tabAlert→auto-open→auto-stop work to
+// runDetectionPipeline() defined in content.js (available at runtime after all scripts parsed).
 async function runObserverPipeline() {
   logger.log('loadObserver', 'runObserverPipeline called');
   if (_pipelineRunning) {
@@ -71,60 +76,18 @@ async function runObserverPipeline() {
       return;
     }
     if (typeof orchTickRunning !== 'undefined' && orchTickRunning) {
-      logger.log('loadObserver', 'runObserverPipeline: tick already running — skipping');
+      if (_rearmCount < MAX_REARMS) {
+        _rearmCount++;
+        logger.log('loadObserver', 'runObserverPipeline: tick running — re-arming', { attempt: _rearmCount });
+        setTimeout(runObserverPipeline, OBSERVE_DEBOUNCE_MS);
+      } else {
+        logger.warn('loadObserver', 'runObserverPipeline: max re-arms reached — dropping');
+        _rearmCount = 0;
+      }
       return;
     }
-
-    var loads  = parseLoads();
-    var result = detectNewLoads(loads);
-    logger.log('loadObserver', 'runObserverPipeline: diff done', {
-      allCount: result.allCount,
-      newCount: result.newCount
-    });
-
-    var surgeLoads = await checkPriceSurge(loads);
-
-    if (result.newCount > 0) {
-      highlightNewLoads(result.newLoads);
-      await playAlert();
-      if (typeof flashTabAlert === 'function') flashTabAlert(result.newCount);
-
-      var autoOpen = await storage.get(STORAGE_KEYS.AUTO_OPEN, true);
-      var opened   = false;
-      if (autoOpen) opened = openTopNewLoad(result.newLoads);
-
-      if (autoOpen && opened) {
-        await sleep(800);
-        try {
-          showInlinePanel(result.newLoads[0]._element);
-          logger.log('loadObserver', 'inline panel shown for top new load');
-        } catch (e) {
-          logger.warn('loadObserver', 'inline panel render failed', { error: e });
-        }
-      }
-
-      tabState.set('running', false);
-      logger.log('loadObserver', 'new loads found — auto-stopping loop', { newCount: result.newCount });
-
-    } else if (surgeLoads.length > 0) {
-      var surgeAutoOpen = await storage.get(STORAGE_KEYS.AUTO_OPEN, true);
-      var surgeOpened   = false;
-      if (surgeAutoOpen) surgeOpened = openTopNewLoad(surgeLoads);
-
-      if (surgeAutoOpen && surgeOpened) {
-        await sleep(800);
-        try {
-          showInlinePanel(surgeLoads[0]._element);
-          logger.log('loadObserver', 'inline panel shown for surge load');
-        } catch (e) {
-          logger.warn('loadObserver', 'inline panel render failed for surge load', { error: e });
-        }
-      }
-
-      tabState.set('running', false);
-      logger.log('loadObserver', 'surge detected — auto-stopping loop', { surgeCount: surgeLoads.length });
-    }
-
+    _rearmCount = 0;
+    await runDetectionPipeline('observer');
   } catch (e) {
     logger.error('loadObserver', 'runObserverPipeline failed', { error: e });
   } finally {

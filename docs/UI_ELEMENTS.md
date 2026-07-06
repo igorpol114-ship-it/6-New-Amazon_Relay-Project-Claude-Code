@@ -3,6 +3,15 @@
 Every UI element MUST have a unique data-testid.
 When reporting a bug, use the testid name.
 
+## LoadUnit data store (utils/loadStore.js — 2026-06-30)
+
+No new extension UI elements. `loadStore.js` is a pure data-layer module — it maintains
+an in-memory map of `LoadUnit` objects keyed by `loadId`. No DOM elements are injected.
+No Amazon DOM is read or written. No new `.click()` sites. This is a data-modeling
+refactor only; all visual rendering continues to live in its original modules.
+
+---
+
 ## Load observer (content/loadObserver.js — 2026-06-18)
 
 No new extension UI elements. `loadObserver.js` is a background behavioral module — it adds a `MutationObserver` on `div.load-list` and triggers the existing detection pipeline when Amazon's DOM changes. No visible elements are injected; all highlighting/badge rendering stays in their original modules.
@@ -40,6 +49,7 @@ No new extension UI elements. This feature clicks Amazon's own close control —
 | popup-version | span | Extension version display. |
 | popup-night-mode | checkbox | Night Mode toggle — dark theme over Relay site. **Wired** → writes `nightMode` to `chrome.storage.local`; `content/nightMode.js` toggles `html.ext-night` class live. |
 | popup-tab-alert | checkbox | Tab Alert toggle — flash tab title/favicon on new load. **Wired** → writes `tabAlert` to `chrome.storage.local`; `content/tabAlert.js` flashes title (🔔 prefix) and favicon (orange "!" icon) for 10 s, clears on tab focus. |
+| popup-auto-open | checkbox | Auto-Open Top Load toggle. **Wired (2026-07-03)** → writes `autoOpenTopNew` to `chrome.storage.local`. **True-default** (`checked = data[KEY] !== false`). When ON (default): `content.js runDetectionPipeline` calls `openTopNewLoad` + `showInlinePanel` for the highest-paying new load. When OFF: highlights, sound, tab alert, and auto-stop still fire — only the card-open and inline-panel steps are skipped. Reset restores to ON. |
 | popup-volume | range | Sound volume 0–100. **Wired** → writes `soundVolume` to `chrome.storage.local` on slider release (`change`). Read back on popup open (default 70). `content/soundAlert.js` scales oscillator gain as `volume / 100`; `volume === 0` → silent. |
 | popup-sound-select | select | Sound selector dropdown (25 options). **Wired** → writes `soundId` to storage on `change`, then plays an immediate preview. Read back on popup open (default `'default'`). Sounds: default, soft, sharp, bell, deep, high, click, ding, sonar, low, blip, wood, double, notify, drop, triple, alarm, fanfare, sparkle, sweep_up, sweep_down, chord, dial, burst, error. |
 | popup-sound-replay | button | Icon-only replay button (▶) next to the dropdown. **Wired** → plays a preview of the currently selected sound at the current volume on click. |
@@ -98,15 +108,15 @@ Single-segment loads: table rendered directly, no accordion wrapper.
 ## Card Action Bar (content/inlinePanel.js — 2026-06-30)
 
 Thin icon row at the very bottom of every expanded inline panel (single and multi-segment).
-Rendered via `buildActionBar()`, appended last inside `buildPanelElement()`. No click
-handlers wired — icons render and hover only at this stage.
+Rendered via `buildActionBar()`, appended last inside `buildPanelElement()`. Camera and map
+buttons are fully wired; post button is a render-only placeholder pending a Create Post spec.
 
 | testid | Type | Function |
 |--------|------|----------|
-| ext-action-bar | div | Bar container. `border-top`, `background:#f8f9f9`, `display:flex`. Rendered; not yet wired. |
+| ext-action-bar | div | Bar container. `border-top`, `background:#f8f9f9`, `display:flex`. Rendered. |
 | ext-action-camera | button.ext-action-btn | Camera icon (screenshot). `aria-label="Screenshot"`. **Wired (2026-06-30)**: click → `captureCardToClipboard()` → html2canvas renders the load card → PNG blob → `navigator.clipboard.write()`. On success: icon flashes green checkmark for 1.1 s via `flashActionSuccess()`. On error: `logger.error()` with context. |
 | ext-action-map | button.ext-action-btn | Map-pin icon (route map). `aria-label="Route map"`. **Wired (2026-06-30)**: click → `openRouteInMaps(data)` → deduplicates stops from `data.segments`, builds Google Maps Directions URL (origin/waypoints/destination from `stop.name + address`), opens in new tab via `window.open(_blank, noopener,noreferrer)`. No flash — new tab is self-evident confirmation. |
-| ext-action-post | button.ext-action-btn | Document+plus icon (create post). `aria-label="Create post"`. Rendered; not yet wired. |
+| ext-action-post | button.ext-action-btn | Document+plus icon (create post). `aria-label="Create post"`. **Render-only placeholder** — no click handler, no modal. Wire when Create Post / PAT Helper spec is defined. |
 
 All three buttons share `.ext-action-btn`: 28×28 px, no border/background, `border-radius:4px`,
 hover → subtle grey tint + darker icon. SVGs are static 16×16 stroke-based markup (no page data).

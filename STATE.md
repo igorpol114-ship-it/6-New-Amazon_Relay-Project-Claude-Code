@@ -1,5 +1,5 @@
 # Стан проекту
-Оновлено: 2026-06-30
+Оновлено: 2026-07-06 (sidebar dark mode bug — nightMode.js stale !important override fixed)
 
 ## Поточна фаза
 **Step 3 — Підключення контролів попапу до `chrome.storage.local`**
@@ -32,6 +32,7 @@
 - **Night Mode ✅** — `content/nightMode.js`: CSS-клас `html.ext-night`. Ключ: `STORAGE_KEYS.NIGHT_MODE = 'nightMode'`.
 - **Tab Alert ✅** — `content/tabAlert.js`: мигання заголовка + favicon (червоний/жовтий), тільки коли вкладка не у фокусі. Ключ: `STORAGE_KEYS.TAB_ALERT = 'tabAlert'`.
 - **Hide Similar Matches ✅** — `content/filterSimilar.js`: CSS `:has()` ховає батьківський блок до рендеру. Ключ: `STORAGE_KEYS.HIDE_SIMILAR = 'hideSimilarMatches'`.
+- **Auto-Open Top Load ✅** — `popup-auto-open` чекбокс. Ключ: `STORAGE_KEYS.AUTO_OPEN = 'autoOpenTopNew'`. True-default: `checked = data[KEY] !== false`. Контролює чи буде відкриватись найдохідніше нове навантаження.
 - **Sound block ✅** — `content/soundAlert.js` + `popup/popup.js`: 25 звуків, volume slider, sound select, replay button. Persists `soundVolume` + `soundId`.
 - **Hide tag filters ✅** — `content/filterTags.js`: Promoted / Starting soon / Trailer ready / Booked before. `display:none` на badge елементах (простір колапсується). `recomputeWrappers()` ховає `.wo-tag` wrapper якщо всі відомі дочірні теги приховані. Ключі: `hidePromoted`, `hideStartingSoon`, `hideTrailerReady`, `hidePastBook`.
 - **Price Surge Alert ✅** — `content/priceSurge.js`: `checkPriceSurge(loads)` кожен тік. Тригер тільки на зростання payout >= threshold. `.ext-surge-price` + `↑ +$NN` badge. **Per-tab ✅**: threshold + priceHistory в tabState; тільки `surgeEnabled` залишається в chrome.storage.local. Sidebar `sidebar-surge-threshold` — per-tab override.
@@ -45,8 +46,8 @@ Click → `openRouteInMaps(data)` → collects unique stops from `data.segments`
 ### ext-action-camera wired ✅ DONE (2026-06-30)
 Click → `html2canvas(cardElement)` → PNG blob → `navigator.clipboard.write()`. Success: green checkmark flash 1.1 s. Error: `logger.error()`. `vendor/html2canvas.min.js` v1.4.1 vendored (194 KB). `clipboardWrite` permission added to manifest.json. Handler lives in `showInlinePanel()` (where `cardElement` is in scope); `captureCardToClipboard()` + `flashActionSuccess()` are new functions.
 
-### Card Action Bar — icons rendered ✅ DONE (2026-06-30)
-Три кнопки-іконки (camera / map-pin / document+plus) додано в нижню частину кожної inline-панелі через `buildActionBar()` в `inlinePanel.js`. Render-only — без click handlers. CSS: `.ext-action-bar` + `.ext-action-btn` (hover тільки CSS). Testid: `ext-action-bar`, `ext-action-camera`, `ext-action-map`, `ext-action-post`.
+### Card Action Bar ✅ DONE (2026-06-30)
+Три кнопки-іконки в нижній частині кожної inline-панелі (`buildActionBar()`, `inlinePanel.js`). CSS: `.ext-action-bar` + `.ext-action-btn` (hover CSS). Testid: `ext-action-bar`, `ext-action-camera`, `ext-action-map`, `ext-action-post`. Поточний стан кнопок: `ext-action-camera` ✅ wired (screenshot → clipboard), `ext-action-map` ✅ wired (Google Maps route), `ext-action-post` — render-only, не підключено (майбутня фіча).
 
 ### Reset to Defaults ✅ DONE (2026-06-30)
 `popup-reset` button повністю підключено. Клік → `chrome.storage.local.remove(Object.values(STORAGE_KEYS))` без підтвердження → скидає всі popup-контроли до документованих defaults в callback. `tabState`/sessionStorage не чіпається. Перестилізовано як muted text-link, bottom-left. Виявлено і виправлено баг у `chrome.storage.onChanged` (volume/soundId/surgeThreshold призначали `undefined` при видаленні ключів — тепер fallback до defaults). `utils/constants.js`, `utils/logger.js`, `utils/storage.js` додано до `popup.html` (для `STORAGE_KEYS` та `logger`). Деталі: CHANGELOG.md 2026-06-30.
@@ -56,22 +57,27 @@ Click → `html2canvas(cardElement)` → PNG blob → `navigator.clipboard.write
 
 ---
 
+### LoadUnit data model ✅ DONE (2026-06-30)
+`utils/loadStore.js` — in-memory per-tab store (IIFE), not sessionStorage-backed. `mergeLoadUnit / getLoadUnit / pruneLoadUnits / getAllLoadUnits`. Loaded in manifest after `tabState.js`, before all content/ modules. Phase 1 wired in `loadParser.js` (per successfully parsed card + prune after loop). Phase 2 wired in `inlinePanel.js` (`showInlinePanel()`, after `readSheetData()` succeeds). `parseLoads()` and `showInlinePanel()` return values and external behavior unchanged — additive only. `priceSurge.js` untouched (Step 4 deferred). `searchContext` stays null (future work). `window.__EXT_DEBUG.getLoadUnits` exposed.
+
 ## Що в роботі
-Нічого активного. ext-action-map wired завершено 2026-06-30.
+Нічого активного. Чотири bug-fix passes + design system завершені:
+- Core loop (7 виправлень): tabState no-op, подвійний старт, спільний пайплайн, ре-арм observer, захист prune, isExtManagedNode, heap log.
+- inlinePanel.js (5 виправлень): stale-sheet fingerprint, currentPanelCard ownership, stop numbering counter, drift alarm, flashActionSuccess null title.
+- Click pipeline (5 виправлень): highest-paying auto-open (sortByPayoutDesc), detach guard in 250ms settle, nested card dedup, panelCloser Strategy 2 tightened, stale click-site comments.
+- Popup / sidebar / sound (6 виправлень): Auto-Open popup toggle, shared soundDefs.js, toggleRunning tabState fix, logger discipline, priceSurge null-parent guard, log-noise + isForbiddenElement hardening.
+- **Design system ✅ (2026-07-06)**: `utils/designTokens.js` (new) + `popup/popup.css` (full rewrite) + `content/sidebar.js`, `content/inlinePanel.js`, `content/highlighter.js`, `content/priceSurge.js`, `popup/popup.js`. Blue accent (#1a73e8/#4c8dff), neutral scale n100–n900, dark mode via `html.ext-night` CSS vars. STYLING ONLY — zero behavior changes.
+- **Sidebar dark mode fix ✅ (2026-07-06)**: `content/nightMode.js` stale green `!important` rules replaced with correct dark neutral surface (#1c1f24) + blue scanline + dark pill. `content/sidebar.js` explicit `html.ext-night #ext-sidebar` dark override block added. All `.js`/`.css` files clean of legacy green except `NIGHT_HEADER` (Amazon's native header, intentional).
 
 ---
 
 ## Що далі (1–2 кроки)
 
-1. **Auto-restore Amazon filters after reload** (PLANNED, потребує SAFETY.md review перед стартом).
-2. **Memory-leak audit** — `_element` в `knownLoadIds` ✅ ЗАКРИТО 2026-06-30 (non-issue). Єдине джерело heap-росту, що залишилось — Amazon's React SPA; диспетчер управляє цим через ручний `ext-memory-indicator` reload.
-3. **Memory-leak audit** — `_element` DOM-посилання в `knownLoadIds` (`loadDetector.js`). **Watchdog-backstop більше немає** (видалено 2026-06-30) — аудит тепер напряму зменшує, як часто диспетчеру треба тиснути на ручний індикатор.
-4. **Auto-restore Amazon filters after reload** (PLANNED, не розпочато) — потребує окремого SAFETY.md review перед стартом, бо вимагає нових click/input сайтів на Amazon DOM (фільтр-панель). Див. BACKLOG.md.
+1. **Auto-restore Amazon filters after reload** (PLANNED, не розпочато) — потребує SAFETY.md review перед стартом, бо вимагає нових click/input сайтів на Amazon DOM (фільтр-панель). Div. BACKLOG.md.
+2. **Memory-leak audit** — `_element` в `knownLoadIds` ✅ ЗАКРИТО 2026-06-30 (non-issue). `knownLoadIds` — це `Set<string>` (тільки UUID рядки, ніяких DOM-вузлів). Єдине реальне джерело heap-росту — Amazon's React SPA; диспетчер управляє цим через ручний `ext-memory-indicator` reload.
 
 ---
 
 ## Блокери / важливі рішення
 
-- **Memory-leak audit**: `_element` DOM-посилання в `knownLoadIds` (`loadDetector.js`) можуть блокувати GC. Автоматичного watchdog-backstop більше немає (видалено 2026-06-30) — дисплей покладається на ручний reload диспетчера.
-- **`clipboardWrite` permission**: не додавати до manifest до реалізації Copy Screenshot (Card Action Bar).
-- **Amazon filters not restorable automatically**: search filters (Origin/Radius/Payout/Equipment) живуть лише в React-стані Amazon, не в URL — втрачаються при будь-якому reload (раніше автоматичному, тепер лише ручному). Авто-відновлення — окрема майбутня фіча, потребує нових кліків на Amazon DOM.
+- **Amazon filters not restorable automatically**: search filters (Origin/Radius/Payout/Equipment) живуть лише в React-стані Amazon, не в URL — втрачаються при будь-якому ручному reload. Авто-відновлення — окрема майбутня фіча, потребує нових кліків на Amazon DOM та SAFETY.md review.

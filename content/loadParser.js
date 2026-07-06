@@ -90,7 +90,16 @@ function parseLoads() {
     logger.warn('loadParser', 'no load-list found');
     return [];
   }
-  const cards = mainList.querySelectorAll('div.load-card, div.load-card__selected, div.wo-card-header--highlighted');
+  // Convert NodeList to array and drop any element contained within another match.
+  // .wo-card-header--highlighted may be an inner child of .load-card, producing a
+  // duplicate entry with loadId=null and noisy error logs.
+  const allCards = Array.from(mainList.querySelectorAll('div.load-card, div.load-card__selected, div.wo-card-header--highlighted'));
+  const cards = allCards.filter(function (elA) {
+    return !allCards.some(function (elB) { return elB !== elA && elB.contains(elA); });
+  });
+  if (cards.length !== allCards.length) {
+    logger.debug('loadParser', 'dropped nested card matches', { dropped: allCards.length - cards.length });
+  }
 
   if (cards.length === 0) {
     logger.warn('loadParser', 'no load-card elements found in main load-list');
@@ -106,9 +115,34 @@ function parseLoads() {
       loadId = card.querySelector('div[id]')?.id || null;
       const load = parseOneCard(card);
       results.push(load);
+      // Phase 1 merge into LoadUnit store — additive only, does not change the return value.
+      // _element is intentionally excluded (DOM node, never serialized).
+      loadStore.mergeLoadUnit(load.loadId, {
+        payout:          load.payout,
+        pricePerMile:    load.pricePerMile,
+        distance:        load.distance,
+        duration:        load.duration,
+        boardStops:      load.stops,
+        equipment:       load.equipment,
+        trailerLetter:   load.trailerLetter,
+        loadingType:     load.loadingType,
+        deadhead:        load.deadhead,
+        tag:             load.tag,
+        specialServices: load.specialServices
+      });
     } catch (e) {
       logger.error('loadParser', 'failed to parse card', { loadId, error: e });
     }
+  }
+
+  // Remove LoadUnits for loads that are no longer on the board.
+  // Skip prune when results is empty — a transient React remount during a filter change
+  // can return 0 cards momentarily; pruning then would wipe Phase 2 detail data for all live loads.
+  const currentIds = new Set(results.map(l => l.loadId).filter(Boolean));
+  if (results.length === 0) {
+    logger.debug('loadParser', 'parseLoads: 0 results — skipping pruneLoadUnits (transient empty render)');
+  } else {
+    loadStore.pruneLoadUnits(currentIds);
   }
 
   logger.log('loadParser', 'parseLoads done', { count: results.length });

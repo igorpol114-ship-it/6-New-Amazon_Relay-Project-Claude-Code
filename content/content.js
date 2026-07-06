@@ -2,8 +2,9 @@ logger.log('content', 'extension loaded', { version: EXT_VERSION });
 
 // --- Orchestrator ---
 
-var orchTimer       = null;  // setTimeout handle; null means loop is not scheduled
-var orchTickRunning = false; // overlap guard — prevents concurrent ticks
+var orchTimer       = null;   // setTimeout handle; null means loop is not scheduled
+var orchTickRunning = false;  // overlap guard — prevents concurrent ticks
+var orchLoopActive  = false;  // double-start guard — true between startOrchestrator and stopOrchestrator
 
 var REFRESH_SETTLE_MS = 1200; // ms to wait after refresh before parsing
 
@@ -16,7 +17,7 @@ function sleep(ms) {
 // Shared heap reader — used by sidebar.js's memory indicator (polled independently
 // of the orchestrator loop). Returns null where performance.memory is unsupported.
 function getHeapUsageRatio() {
-  logger.log('content', 'getHeapUsageRatio called');
+  logger.debug('content', 'getHeapUsageRatio called'); // debug: fires every 7s from sidebar poll
   try {
     if (!performance.memory) return null;
     var used  = performance.memory.usedJSHeapSize;
@@ -29,6 +30,82 @@ function getHeapUsageRatio() {
   }
 }
 
+// Returns a copy of the loads array sorted by numeric payout descending.
+// Unparseable payout strings (null, missing, non-numeric) sort to the end (-Infinity).
+// Does NOT mutate the input array.
+function sortByPayoutDesc(loads) {
+  logger.log('content', 'sortByPayoutDesc called', { count: loads ? loads.length : 0 });
+  return loads.slice().sort(function (a, b) {
+    var aNum = parseFloat((a.payout || '').replace(/[$,]/g, ''));
+    var bNum = parseFloat((b.payout || '').replace(/[$,]/g, ''));
+    if (isNaN(aNum)) aNum = -Infinity;
+    if (isNaN(bNum)) bNum = -Infinity;
+    return bNum - aNum;
+  });
+}
+
+// Shared detection pipeline — called by both orchestratorTick (after a refresh) and
+// runObserverPipeline (DOM already changed, no refresh step).
+// sourceTag ('tick' | 'observer') is threaded through log lines to keep origin distinguishable.
+async function runDetectionPipeline(sourceTag) {
+  logger.log('content', 'runDetectionPipeline called', { source: sourceTag });
+
+  var loads  = parseLoads();
+  var result = detectNewLoads(loads);
+  logger.log('content', 'runDetectionPipeline: diff done', {
+    source: sourceTag, allCount: result.allCount, newCount: result.newCount
+  });
+
+  var surgeLoads = await checkPriceSurge(loads);
+
+  if (result.newCount > 0) {
+    highlightNewLoads(result.newLoads); // highlight all, original DOM order
+    await playAlert();
+    if (typeof flashTabAlert === 'function') flashTabAlert(result.newCount);
+
+    var autoOpen = await storage.get(STORAGE_KEYS.AUTO_OPEN, true);
+    var opened   = false;
+    // Sort by payout desc so openTopNewLoad always opens the highest-paying new load.
+    var ordered  = sortByPayoutDesc(result.newLoads);
+    if (autoOpen) opened = openTopNewLoad(ordered);
+
+    if (autoOpen && opened) {
+      await sleep(800);
+      try {
+        showInlinePanel(ordered[0]._element);
+        logger.log('content', 'runDetectionPipeline: inline panel shown', { source: sourceTag, topPayout: ordered[0].payout });
+      } catch (e) {
+        logger.warn('content', 'runDetectionPipeline: inline panel render failed', { source: sourceTag, error: e });
+      }
+    }
+
+    tabState.set('running', false);
+    logger.log('content', 'runDetectionPipeline: new loads found — auto-stopping', {
+      source: sourceTag, newCount: result.newCount
+    });
+  } else if (surgeLoads.length > 0) {
+    var surgeAutoOpen  = await storage.get(STORAGE_KEYS.AUTO_OPEN, true);
+    var surgeOpened    = false;
+    var orderedSurge   = sortByPayoutDesc(surgeLoads);
+    if (surgeAutoOpen) surgeOpened = openTopNewLoad(orderedSurge);
+
+    if (surgeAutoOpen && surgeOpened) {
+      await sleep(800);
+      try {
+        showInlinePanel(orderedSurge[0]._element);
+        logger.log('content', 'runDetectionPipeline: inline panel shown for surge', { source: sourceTag, topPayout: orderedSurge[0].payout });
+      } catch (e) {
+        logger.warn('content', 'runDetectionPipeline: inline panel render failed for surge', { source: sourceTag, error: e });
+      }
+    }
+
+    tabState.set('running', false);
+    logger.log('content', 'runDetectionPipeline: surge detected — auto-stopping', {
+      source: sourceTag, surgeCount: surgeLoads.length
+    });
+  }
+}
+
 async function orchestratorTick() {
   if (orchTickRunning) {
     logger.warn('content', 'orchestratorTick: previous tick still running, skipping');
@@ -38,70 +115,8 @@ async function orchestratorTick() {
   try {
     var refreshed = refreshNow();
     logger.log('content', 'orchestratorTick: refresh triggered', { refreshed: refreshed });
-
     await sleep(REFRESH_SETTLE_MS);
-
-    var loads  = parseLoads();
-    var result = detectNewLoads(loads);
-    logger.log('content', 'orchestratorTick: diff done', {
-      allCount: result.allCount,
-      newCount: result.newCount
-    });
-
-    var surgeLoads = await checkPriceSurge(loads);
-
-    if (result.newCount > 0) {
-      highlightNewLoads(result.newLoads);
-      await playAlert();
-      if (typeof flashTabAlert === 'function') flashTabAlert(result.newCount);
-
-      var autoOpen = await storage.get(STORAGE_KEYS.AUTO_OPEN, true);
-      var opened   = false;
-      if (autoOpen) {
-        opened = openTopNewLoad(result.newLoads);
-      }
-
-      if (autoOpen && opened) {
-        await sleep(800);
-        try {
-          showInlinePanel(result.newLoads[0]._element);
-          logger.log('content', 'inline panel shown for top new load');
-        } catch (e) {
-          logger.warn('content', 'inline panel render failed', { error: e });
-        }
-      }
-
-      // tabState subscriber fires stopOrchestrator() synchronously
-      tabState.set('running', false);
-      logger.log('content', 'new loads found — auto-stopping loop for dispatcher review', {
-        newCount: result.newCount
-      });
-    } else if (surgeLoads.length > 0) {
-      // Surge hit with no new loads — auto-stop and open top surge card.
-      // Uses the existing neutral-zone click (openTopNewLoad) — no new .click() sites.
-      var surgeAutoOpen = await storage.get(STORAGE_KEYS.AUTO_OPEN, true);
-      var surgeOpened   = false;
-      if (surgeAutoOpen) {
-        surgeOpened = openTopNewLoad(surgeLoads);
-      }
-
-      if (surgeAutoOpen && surgeOpened) {
-        await sleep(800);
-        try {
-          showInlinePanel(surgeLoads[0]._element);
-          logger.log('content', 'inline panel shown for surge load');
-        } catch (e) {
-          logger.warn('content', 'inline panel render failed for surge load', { error: e });
-        }
-      }
-
-      // tabState subscriber fires stopOrchestrator() synchronously
-      tabState.set('running', false);
-      logger.log('content', 'surge detected — auto-stopping loop for dispatcher review', {
-        surgeCount: surgeLoads.length
-      });
-    }
-
+    await runDetectionPipeline('tick');
   } catch (e) {
     logger.error('content', 'orchestratorTick: unexpected error', { error: e });
   } finally {
@@ -110,6 +125,10 @@ async function orchestratorTick() {
 }
 
 function scheduleNextTick() {
+  if (!orchLoopActive) {
+    logger.log('content', 'scheduleNextTick: loop not active — halted');
+    return;
+  }
   var running = tabState.get('running');
   if (!running) {
     logger.log('content', 'scheduleNextTick: loop halted');
@@ -123,15 +142,21 @@ function scheduleNextTick() {
 }
 
 async function startOrchestrator() {
-  if (orchTimer !== null) {
-    logger.warn('content', 'startOrchestrator: already scheduled, ignoring');
+  if (orchLoopActive) {
+    logger.warn('content', 'startOrchestrator: loop already active — ignoring');
     return;
   }
+  if (orchTimer !== null) {
+    logger.warn('content', 'startOrchestrator: timer already scheduled — ignoring');
+    return;
+  }
+  orchLoopActive = true;
   logger.log('content', 'startOrchestrator: starting loop');
   orchestratorTick().then(function () { scheduleNextTick(); });
 }
 
 function stopOrchestrator() {
+  orchLoopActive = false;
   if (orchTimer !== null) {
     clearTimeout(orchTimer);
     orchTimer = null;

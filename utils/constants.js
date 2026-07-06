@@ -5,7 +5,7 @@ const FORBIDDEN_SELECTORS = [
 ];
 
 function isForbiddenElement(el) {
-  if (!el) return false;
+  if (!el || el.nodeType !== 1 || typeof el.matches !== 'function') return false;
   return FORBIDDEN_SELECTORS.some(s => el.matches(s) || el.closest(s));
 }
 

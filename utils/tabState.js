@@ -39,6 +39,10 @@ var tabState = (function () {
   }
 
   function set(key, value) {
+    if (key !== 'priceHistory' && _state[key] === value) {
+      logger.debug('tabState', 'set: value unchanged — skipping', { key: key, value: value });
+      return;
+    }
     logger.log('tabState', 'set', { key: key, value: key === 'priceHistory' ? '[object]' : value });
     _state[key] = value;
     // Mirror non-running fields to sessionStorage so they survive a page reload.

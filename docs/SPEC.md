@@ -22,7 +22,7 @@ from this MVP — it is a future separate project with its own spec.
 4. Highlight new loads + play one sound
 5. Auto-open details of highest-paying new load (neutral zone click)
 6. Top sidebar + Chrome toolbar popup
-7. 20 selectable notification sounds (Web Audio API)
+7. 25 selectable notification sounds (Web Audio API)
 8. PAT helper: fill Post-a-Truck form (user presses Submit)
 
 ## Non-goals (OUT OF SCOPE for MVP)
@@ -37,4 +37,4 @@ from this MVP — it is a future separate project with its own spec.
 - Must not break Amazon Relay UI
 - Must work in user's existing logged-in session
 - Must NEVER click booking buttons (architectural guarantee)
-- Only two click types allowed: Refresh button, neutral zone
+- Only three click types allowed on Amazon DOM: Refresh button (refreshManager.js), load-card neutral zone (detailOpener.js), detail-panel close (panelCloser.js). See docs/SAFETY.md for the extension-owned memory-indicator click (not Amazon DOM).

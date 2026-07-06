@@ -85,12 +85,13 @@ function buildNightCss() {
     'html.ext-night #rlb-book-btn,html.ext-night #rlb-book-trip-confirm-booking-btn,html.ext-night [id*="book" i][id*="btn" i]{background-color:' + BOOK_BG + ' !important;color:' + BOOK_TEXT + ' !important;-webkit-text-fill-color:' + BOOK_TEXT + ' !important;border:1px solid ' + BOOK_BORDER + ' !important;font-weight:700 !important;opacity:1 !important;}',
     'html.ext-night #rlb-book-btn *,html.ext-night #rlb-book-trip-confirm-booking-btn *{color:' + BOOK_TEXT + ' !important;-webkit-text-fill-color:' + BOOK_TEXT + ' !important;}',
 
-    'html.ext-night .ext-new-load{background-color:rgba(120,180,235,0.20) !important;}',
+    'html.ext-night .ext-new-load{background-color:rgba(76,141,255,.15) !important;box-shadow:inset 4px 0 0 0 rgba(76,141,255,.8) !important;}',
 
-    'html.ext-night #ext-sidebar{background-color:' + NIGHT_HEADER + ' !important;}',
+    // ext-sidebar dark surface — replaces the old green header colour
+    'html.ext-night #ext-sidebar{background-color:#1c1f24 !important;color:#e5edf5 !important;}',
     'html.ext-night #ext-sidebar input{background-color:transparent !important;border:none !important;}',
-    'html.ext-night #ext-sidebar [data-testid="ext-playpause"]{background-color:rgba(255,255,255,0.15) !important;}',
-    'html.ext-night #ext-sidebar .ext-scanline__seg{background:linear-gradient(90deg,rgba(125,207,142,0),rgba(125,207,142,1),rgba(125,207,142,0)) !important;}'
+    'html.ext-night #ext-sidebar [data-testid="ext-playpause"]{background:#23272d !important;border-color:#2c313a !important;color:#b0bcca !important;}',
+    'html.ext-night #ext-sidebar .ext-scanline__seg{background:linear-gradient(90deg,rgba(76,141,255,0),rgba(76,141,255,.9),rgba(76,141,255,0)) !important;}'
   ].join('');
 }
 

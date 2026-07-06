@@ -1,6 +1,6 @@
 // Stage 6: findRefreshButton() + refreshDryRun() — NO .click()
-// Stage 7: refreshNow() — the ONE allowed .click() in this project, guarded by
-//          isForbiddenElement() + tagName check before it can execute.
+// Stage 7: refreshNow() — one of the three allowed Amazon-DOM click sites (Refresh button);
+//          see docs/SAFETY.md (canonical). Guarded by isForbiddenElement() + tagName check.
 
 const REFRESH_PATH_D = 'M20.128 2l-.493 5.635L14 7.142M19.44 6.935a9 9 0 101.023 8.134';
 
@@ -104,7 +104,7 @@ function refreshNow() {
     return false;
   }
 
-  // All checks passed — this is the ONE allowed .click() in the entire codebase.
+  // All checks passed — one of the three allowed Amazon-DOM click sites — see docs/SAFETY.md (canonical).
   logger.log('refreshManager', 'SAFETY PASSED — clicking refresh button now', { tag: button.tagName });
   button.click();
   logger.log('refreshManager', 'refresh button clicked');

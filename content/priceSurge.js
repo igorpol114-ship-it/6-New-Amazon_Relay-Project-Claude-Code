@@ -13,12 +13,18 @@ function injectSurgeStyle() {
   style.id = 'ext-surge-style';
   style.textContent =
     '.ext-surge-price{' +
-      'color:#1a5c38 !important;background:rgba(26,92,56,0.10);' +
+      'color:#7a4f00 !important;background:rgba(212,167,44,.12);' +
       'border-radius:3px;padding:0 3px;' +
     '}' +
     '.ext-surge-badge{' +
       'display:inline-block;font-size:10px;font-weight:600;' +
-      'color:#1a5c38;margin-left:4px;vertical-align:middle;' +
+      'color:#7a4f00;margin-left:4px;vertical-align:middle;' +
+    '}' +
+    'html.ext-night .ext-surge-price{' +
+      'color:#f0c040 !important;background:rgba(212,167,44,.20);' +
+    '}' +
+    'html.ext-night .ext-surge-badge{' +
+      'color:#f0c040;' +
     '}';
   document.head.appendChild(style);
 }
@@ -30,7 +36,7 @@ function clearSurgeHighlights() {
   var priceEls = document.querySelectorAll('.ext-surge-price');
   priceEls.forEach(function (el) { el.classList.remove('ext-surge-price'); });
   var badges = document.querySelectorAll('[data-testid="ext-surge-badge"]');
-  badges.forEach(function (badge) { badge.parentNode.removeChild(badge); });
+  badges.forEach(function (badge) { if (badge.parentNode) badge.parentNode.removeChild(badge); });
 }
 
 function highlightSurge(card, delta) {
